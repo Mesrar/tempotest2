@@ -66,6 +66,7 @@ async function postJob(jobData) {
 }
 ```
 
+
 Le système va automatiquement traiter la nouvelle offre et commencer à rechercher des candidats correspondants.
 
 ### Recherche de candidats
