@@ -1,16 +1,20 @@
 /** @type {import('next').NextConfig} */
 
-const nextConfig = {};
+const nextConfig = {
+  // Next.js App Router uses middleware for i18n instead of the i18n config
+  // Remove the i18n config to avoid conflicts
+  trailingSlash: false,
+};
 
 if (process.env.NEXT_PUBLIC_TEMPO) {
-    nextConfig["experimental"] = {
-        // NextJS 13.4.8 up to 14.1.3:
-        // swcPlugins: [[require.resolve("tempo-devtools/swc/0.86"), {}]],
-        // NextJS 14.1.3 to 14.2.11:
-        swcPlugins: [[require.resolve("tempo-devtools/swc/0.90"), {}]]
+  nextConfig["experimental"] = {
+    // NextJS 13.4.8 up to 14.1.3:
+    // swcPlugins: [[require.resolve("tempo-devtools/swc/0.86"), {}]],
+    // NextJS 14.1.3 to 14.2.11:
+    swcPlugins: [[require.resolve("tempo-devtools/swc/0.90"), {}]],
 
-        // NextJS 15+ (Not yet supported, coming soon)
-    }
+    // NextJS 15+ (Not yet supported, coming soon)
+  };
 }
 
 module.exports = nextConfig;

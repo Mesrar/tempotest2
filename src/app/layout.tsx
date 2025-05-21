@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import I18nProvider from "@/components/i18n-provider";
+import { Locale } from "@/lib/i18n";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,15 +15,25 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: { locale?: Locale };
 }>) {
+  const locale = params.locale || "en";
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      suppressHydrationWarning
+    >
       <Script src="https://api.tempolabs.ai/proxy-asset?url=https://storage.googleapis.com/tempo-public-assets/error-handling.js" />
       <body className={inter.className}>
-        {children}
-        <TempoInit />
+        <I18nProvider initialLocale={locale as Locale}>
+          {children}
+          <TempoInit />
+        </I18nProvider>
       </body>
     </html>
   );

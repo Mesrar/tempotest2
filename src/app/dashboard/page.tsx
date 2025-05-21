@@ -1,8 +1,9 @@
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { createClient } from "../../../supabase/server";
-import { InfoIcon, UserCircle } from "lucide-react";
+import { InfoIcon, UserCircle, ClipboardCheck, UserCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 import { SubscriptionCheck } from "@/components/subscription-check";
+import Link from "next/link";
 
 export default async function Dashboard() {
   const supabase = await createClient();
