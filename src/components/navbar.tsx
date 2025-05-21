@@ -21,25 +21,25 @@ export default async function Navbar() {
 
         <div className="hidden md:flex space-x-6">
           <Link
-            href="#features"
+            href="/#features"
             className="text-sm font-medium text-gray-700 hover:text-blue-600"
           >
             Features
           </Link>
           <Link
-            href="#pricing"
+            href="/#pricing"
             className="text-sm font-medium text-gray-700 hover:text-blue-600"
           >
             Pricing
           </Link>
           <Link
-            href="#"
+            href="/for-employers"
             className="text-sm font-medium text-gray-700 hover:text-blue-600"
           >
             For Employers
           </Link>
           <Link
-            href="#"
+            href="/for-workers"
             className="text-sm font-medium text-gray-700 hover:text-blue-600"
           >
             For Workers

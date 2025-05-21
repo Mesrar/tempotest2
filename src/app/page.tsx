@@ -177,7 +177,7 @@ export default async function Home() {
             temporary staffing process.
           </p>
           <a
-            href="/dashboard"
+            href="/post-job"
             className="inline-flex items-center px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Post Your First Job
