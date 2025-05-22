@@ -20,20 +20,37 @@ interface Job {
   title: string;
   status: string;
   created_at: string;
-  skills: string[];
+  skills: string[] | null; // Peut être null lorsqu'adapté depuis required_skills
+  required_skills?: string[] | null; // Champ original de la base de données
 }
 
 export default function TranslatedDashboard({ 
   activeJobsCount, 
   applicantsCount, 
-  jobs 
+  jobs,
+  locale,
+  userRole,
+  userId
 }: { 
   activeJobsCount: number;
   applicantsCount: number;
   jobs: Job[];
+  locale: string;
+  userRole?: string;
+  userId?: string;
 }) {
   const { t } = useT();
-  const { locale } = useTranslation();
+
+  // Fonction utilitaire pour obtenir les compétences d'un job en gérant différentes structures possibles
+  const getJobSkills = (job: Job): string[] => {
+    if (job.skills && Array.isArray(job.skills)) {
+      return job.skills;
+    }
+    if (job.required_skills && Array.isArray(job.required_skills)) {
+      return job.required_skills;
+    }
+    return [];
+  };
 
   // Helper pour les chemins avec locale
   const localePath = (path: string) => {
@@ -57,14 +74,127 @@ export default function TranslatedDashboard({
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
+
+  // Afficher un tableau de bord spécifique pour le personnel
+  if (userRole === 'staff') {
+    return (
+      <main className="w-full">
+        <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
+          {/* Header Section pour le personnel */}
+          <RtlAware className="bg-card rounded-xl p-6 border shadow-sm">
+            <header className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold">LogiStaff</h1>
+                <Badge className="bg-blue-100 text-blue-800 border-blue-200">Staff</Badge>
+              </div>
+              <div className="bg-secondary/50 text-sm p-3 px-4 rounded-lg text-muted-foreground flex gap-2 items-center">
+                <InfoIcon size="14" />
+                <span>
+                  Bienvenue sur votre tableau de bord Staff LogiStaff.
+                </span>
+              </div>
+            </header>
+
+            {/* Stats Overview pour le personnel */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <div className="bg-white rounded-xl p-6 border shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-700">
+                    Missions Disponibles
+                  </h3>
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <Briefcase className="w-5 h-5 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold mt-2">7</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Offres d'emploi correspondant à votre profil
+                </p>
+              </div>
+
+              <div className="bg-white rounded-xl p-6 border shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-700">
+                    Missions Complétées
+                  </h3>
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <ClipboardCheck className="w-5 h-5 text-blue-600" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold mt-2">0</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Missions terminées avec succès
+                </p>
+              </div>
+
+              <div className="bg-white rounded-xl p-6 border shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-700">
+                    Évaluation
+                  </h3>
+                  <div className="bg-yellow-100 p-2 rounded-full">
+                    <UserCheck className="w-5 h-5 text-yellow-600" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold mt-2">N/A</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Note moyenne basée sur vos missions
+                </p>
+              </div>
+            </div>
+          </RtlAware>
+
+          {/* Actions pour le personnel */}
+          <RtlAware className="bg-card rounded-xl p-6 border shadow-sm">
+            <h2 className="font-semibold text-xl mb-5">Actions Rapides</h2>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Link
+                href={localePath("/dashboard/jobs/available")}
+                className="flex gap-3 items-center p-4 bg-white rounded-lg border hover:shadow-sm hover:border-blue-300 transition-all"
+              >
+                <div className="bg-green-100 p-2 rounded-full">
+                  <Briefcase className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium">Trouver des Missions</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Parcourir les offres d'emploi disponibles
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                href={localePath("/dashboard/profile")}
+                className="flex gap-3 items-center p-4 bg-white rounded-lg border hover:shadow-sm hover:border-blue-300 transition-all"
+              >
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <UserCircle className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium">Mettre à jour mon Profil</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Ajouter des compétences et expériences
+                  </p>
+                </div>
+              </Link>
+            </div>
+          </RtlAware>
+        </div>
+      </main>
+    );
+  }
   
+  // Tableau de bord par défaut pour les entreprises/clients
   return (
     <main className="w-full">
       <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
         {/* Header Section */}
         <RtlAware className="bg-card rounded-xl p-6 border shadow-sm">
           <header className="flex flex-col gap-4">
-            <h1 className="text-3xl font-bold">LogiStaff</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">LogiStaff</h1>
+              <Badge className="bg-purple-100 text-purple-800 border-purple-200">Entreprise</Badge>
+            </div>
             <div className="bg-secondary/50 text-sm p-3 px-4 rounded-lg text-muted-foreground flex gap-2 items-center">
               <InfoIcon size="14" />
               <span>
@@ -158,16 +288,15 @@ export default function TranslatedDashboard({
                       </div>
 
                       <div className="flex gap-1 mt-3 flex-wrap">
-                        {job.skills &&
-                          job.skills.map((skill, idx) => (
-                            <Badge
-                              key={idx}
-                              variant="outline"
-                              className="bg-blue-50"
-                            >
-                              {skill}
-                            </Badge>
-                          ))}
+                        {getJobSkills(job).map((skill, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="bg-blue-50"
+                          >
+                            {skill}
+                          </Badge>
+                        ))}
                       </div>
                     </div>
                   </div>

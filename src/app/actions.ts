@@ -8,6 +8,7 @@ export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const fullName = formData.get("full_name")?.toString() || '';
+  const userRole = formData.get("user_role")?.toString() || 'company'; // Valeur par défaut 'company'
   const locale = getLocaleFromFormData(formData);
   const supabase = await createClient();
 
@@ -26,6 +27,7 @@ export const signUpAction = async (formData: FormData) => {
       data: {
         full_name: fullName,
         email: email,
+        role: userRole, // Stocker le rôle dans les métadonnées utilisateur
       }
     },
   });
@@ -79,7 +81,7 @@ export const signInAction = async (formData: FormData) => {
   const locale = getLocaleFromFormData(formData);
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -88,6 +90,13 @@ export const signInAction = async (formData: FormData) => {
     return encodedRedirect("error", `/${locale}/sign-in`, error.message);
   }
 
+  // Redirection basée sur le rôle de l'utilisateur
+  const userRole = data.user?.user_metadata?.role;
+  
+  if (userRole === 'staff') {
+    return redirect(`/${locale}/dashboard?role=staff`);
+  }
+  
   return redirect(`/${locale}/dashboard`);
 };
 
