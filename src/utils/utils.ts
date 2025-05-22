@@ -14,3 +14,14 @@ export function encodedRedirect(
 ) {
   return redirect(`${path}?${type}=${encodeURIComponent(message)}`);
 }
+
+/**
+ * Extracts the locale from form data with a fallback to the default locale.
+ * @param {FormData} formData - The form data to extract the locale from.
+ * @param {string} defaultLocale - The default locale to use if none is found in the form data.
+ * @returns {string} The extracted locale or the default locale.
+ */
+export function getLocaleFromFormData(formData: FormData, defaultLocale: string = "en"): string {
+  const locale = formData.get("locale")?.toString();
+  return locale || defaultLocale;
+}

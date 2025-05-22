@@ -1,6 +1,6 @@
 "use server";
 
-import { encodedRedirect } from "@/utils/utils";
+import { encodedRedirect, getLocaleFromFormData } from "@/utils/utils";
 import { redirect } from "next/navigation";
 import { createClient } from "../../supabase/server";
 
@@ -8,7 +8,7 @@ export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const fullName = formData.get("full_name")?.toString() || '';
-  const locale = formData.get("locale")?.toString() || "en";
+  const locale = getLocaleFromFormData(formData);
   const supabase = await createClient();
 
   if (!email || !password) {
@@ -76,7 +76,7 @@ export const signUpAction = async (formData: FormData) => {
 export const signInAction = async (formData: FormData) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const locale = formData.get("locale") as string || "en";
+  const locale = getLocaleFromFormData(formData);
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -95,7 +95,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const supabase = await createClient();
   const callbackUrl = formData.get("callbackUrl")?.toString();
-  const locale = formData.get("locale")?.toString() || "en";
+  const locale = getLocaleFromFormData(formData);
 
   if (!email) {
     return encodedRedirect("error", `/${locale}/forgot-password`, "Email is required");
@@ -124,7 +124,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
 
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();
-  const locale = formData.get("locale")?.toString() || "en";
+  const locale = getLocaleFromFormData(formData);
 
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
@@ -161,7 +161,7 @@ export const resetPasswordAction = async (formData: FormData) => {
 };
 
 export const signOutAction = async (formData: FormData) => {
-  const locale = formData.get("locale")?.toString() || "en";
+  const locale = getLocaleFromFormData(formData);
   const supabase = await createClient();
   await supabase.auth.signOut();
   return redirect(`/${locale}/sign-in`);
