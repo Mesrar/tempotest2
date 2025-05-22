@@ -18,7 +18,7 @@ export default async function ForEmployers({
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar locale={locale} />
-      <TranslatedForEmployers />
+      <TranslatedForEmployers locale={locale} />
       <Footer />
     </div>
   );
