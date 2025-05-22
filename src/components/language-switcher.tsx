@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@/lib/i18n";
+import { useT } from "@/lib/translations";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -12,6 +13,10 @@ import { Globe } from "lucide-react";
 
 export default function LanguageSwitcher() {
   const { locale, changeLocale } = useTranslation();
+  const { t } = useT();
+
+  // Déterminer si la langue actuelle est RTL
+  const isRtl = locale === "ar";
 
   return (
     <DropdownMenu>
@@ -21,24 +26,24 @@ export default function LanguageSwitcher() {
           <span className="sr-only">Switch language</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align={isRtl ? "start" : "end"} className={`[&>*]:${isRtl ? 'rtl' : 'ltr'}`}>
         <DropdownMenuItem
           onClick={() => changeLocale("en")}
           className={locale === "en" ? "bg-gray-100" : ""}
         >
-          English
+          {t("language.english")}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => changeLocale("ar")}
           className={locale === "ar" ? "bg-gray-100" : ""}
         >
-          العربية
+          {t("language.arabic")}
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => changeLocale("fr")}
           className={locale === "fr" ? "bg-gray-100" : ""}
         >
-          Français
+          {t("language.french")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

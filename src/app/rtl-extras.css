@@ -1,0 +1,116 @@
+/* Ajustement pour les éléments d'interface en RTL */
+html[dir="rtl"] .items-start {
+  align-items: flex-end;
+}
+
+html[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+html[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* Inversion des icônes avec directionnalité */
+html[dir="rtl"] svg.rtl-mirror {
+  transform: scaleX(-1);
+}
+
+/* Ajustement des ombres intérieures */
+html[dir="rtl"] .inset-x-0 {
+  right: 0;
+  left: 0;
+}
+
+/* Support pour les icônes directionnelles courantes */
+html[dir="rtl"] .arrow-left {
+  transform: rotate(180deg);
+}
+
+html[dir="rtl"] .arrow-right {
+  transform: rotate(180deg);
+}
+
+/* Ajustements pour les panneaux latéraux */
+html[dir="rtl"] .right-0 {
+  right: auto;
+  left: 0;
+}
+
+html[dir="rtl"] .left-0 {
+  left: auto;
+  right: 0;
+}
+
+/* Correction pour les boutons avec icônes */
+html[dir="rtl"] .space-x-2 > *:not(:first-child) {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+/* Ajustement pour les règles de bordure */
+html[dir="rtl"] .border-l {
+  border-left: none;
+  border-right-width: 1px;
+  border-right-style: solid;
+}
+
+html[dir="rtl"] .border-r {
+  border-right: none;
+  border-left-width: 1px;
+  border-left-style: solid;
+}
+
+/* Correction pour les composants UI spécifiques */
+html[dir="rtl"] .carousel-next {
+  transform: rotate(180deg);
+}
+
+html[dir="rtl"] .carousel-prev {
+  transform: rotate(180deg);
+}
+
+/* Support pour le composant Tabs */
+html[dir="rtl"] .tabs-list {
+  flex-direction: row-reverse;
+}
+
+/* Ajustements pour les composants Dialog */
+html[dir="rtl"] .dialog-content {
+  text-align: right;
+}
+
+/* Ajustements pour les composants avec des icônes spécifiques */
+html[dir="rtl"] .icon-left {
+  margin-right: 0;
+  margin-left: 0.5rem;
+  transform: scaleX(-1);
+}
+
+html[dir="rtl"] .icon-right {
+  margin-left: 0;
+  margin-right: 0.5rem;
+  transform: scaleX(-1);
+}
+
+/* Ajustements pour les formulaires */
+html[dir="rtl"] .form-label {
+  text-align: right;
+}
+
+/* Support pour les grilles et listes */
+html[dir="rtl"] .grid-cols-reverse {
+  direction: rtl;
+}
+
+/* Ajustements pour les listes numérotées */
+html[dir="rtl"] ol {
+  padding-right: 1.5rem;
+  padding-left: 0;
+}
+
+/* Support pour les tooltips */
+html[dir="rtl"] .tooltip {
+  direction: rtl;
+  text-align: right;
+}

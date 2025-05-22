@@ -25,8 +25,11 @@ export async function middleware(req: NextRequest) {
   );
 
   if (!pathnameHasLocale) {
-    // Get the preferred locale from cookie or accept-language header
-    let locale = req.cookies.get("NEXT_LOCALE")?.value || defaultLocale;
+    // Get the preferred locale from cookie, localStorage, or accept-language header
+    // localStorage is not accessible in middleware, but we can check cookies
+    let locale = req.cookies.get("preferredLocale")?.value || 
+                 req.cookies.get("NEXT_LOCALE")?.value || 
+                 defaultLocale;
 
     if (!locale || !locales.includes(locale as any)) {
       const acceptLanguage = req.headers.get("accept-language");
@@ -47,7 +50,15 @@ export async function middleware(req: NextRequest) {
       `/${locale}${pathname === "/" ? "" : pathname}`,
       req.url,
     );
-    return NextResponse.redirect(newUrl);
+    const response = NextResponse.redirect(newUrl);
+    
+    // Set the cookie for future requests
+    response.cookies.set("preferredLocale", locale, { 
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+    });
+    
+    return response;
   }
 
   // For paths with locale, update the Supabase auth session

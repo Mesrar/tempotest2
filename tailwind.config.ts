@@ -72,9 +72,41 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      // Ajout de nouvelles classes pour la prise en charge RTL
+      margin: {
+        "start-1": "0.25rem",
+        "start-2": "0.5rem",
+        "start-3": "0.75rem",
+        "start-4": "1rem",
+        "end-1": "0.25rem",
+        "end-2": "0.5rem",
+        "end-3": "0.75rem",
+        "end-4": "1rem",
+      },
+      padding: {
+        "start-1": "0.25rem",
+        "start-2": "0.5rem",
+        "start-3": "0.75rem",
+        "start-4": "1rem",
+        "end-1": "0.25rem",
+        "end-2": "0.5rem",
+        "end-3": "0.75rem",
+        "end-4": "1rem",
+      },
+      textAlign: {
+        start: "start",
+        end: "end",
+      },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    // Plugin pour générer automatiquement des variantes RTL
+    function ({ addVariant }: { addVariant: (name: string, definition: string) => void }) {
+      addVariant("rtl", '[dir="rtl"] &');
+      addVariant("ltr", '[dir="ltr"] &');
+    },
+  ],
 } satisfies Config;
 
 export default config;
