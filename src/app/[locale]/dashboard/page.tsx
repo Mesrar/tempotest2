@@ -46,6 +46,7 @@ export default async function Dashboard({
     <SubscriptionCheck>
       <DashboardNavbar />
       <TranslatedDashboard 
+        locale={locale}
         activeJobsCount={activeJobsCount || 0}
         applicantsCount={applicantsCount || 0}
         jobs={jobs || []}
