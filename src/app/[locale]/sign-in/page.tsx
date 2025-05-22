@@ -6,7 +6,6 @@ import Link from "next/link";
 import { signInAction } from "@/app/actions";
 import Navbar from "@/components/navbar";
 import { Locale } from "@/lib/i18n";
-import { useT } from "@/lib/translations";
 import TranslatedSignIn from "@/components/translated-sign-in";
 
 interface LoginProps {
