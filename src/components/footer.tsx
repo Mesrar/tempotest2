@@ -4,9 +4,11 @@ import Link from "next/link";
 import { Twitter, Linkedin, Facebook, Instagram } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import LanguageSwitcher from "./language-switcher";
+import { useT } from "@/lib/translations";
 
 export default function Footer() {
   const { locale } = useTranslation();
+  const { t } = useT();
   const currentYear = new Date().getFullYear();
 
   // Helper function to prepend locale to URL
@@ -23,14 +25,14 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           {/* Platform Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Platform</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t("footer.platform")}</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href={localePath("#features")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Features
+                  {t("common.features")}
                 </Link>
               </li>
               <li>
@@ -38,7 +40,7 @@ export default function Footer() {
                   href={localePath("#pricing")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Pricing
+                  {t("common.pricing")}
                 </Link>
               </li>
               <li>
@@ -46,23 +48,7 @@ export default function Footer() {
                   href={localePath("/dashboard")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={localePath("/for-employers")}
-                  className="text-gray-600 hover:text-blue-600"
-                >
-                  For Employers
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={localePath("/for-workers")}
-                  className="text-gray-600 hover:text-blue-600"
-                >
-                  For Workers
+                  {t("common.dashboard")}
                 </Link>
               </li>
             </ul>
@@ -70,14 +56,14 @@ export default function Footer() {
 
           {/* Company Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Company</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t("footer.company")}</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  About Us
+                  {t("footer.aboutUs")}
                 </Link>
               </li>
               <li>
@@ -85,7 +71,7 @@ export default function Footer() {
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Careers
+                  {t("footer.careers")}
                 </Link>
               </li>
               <li>
@@ -93,7 +79,7 @@ export default function Footer() {
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Press
+                  {t("footer.press")}
                 </Link>
               </li>
               <li>
@@ -101,7 +87,7 @@ export default function Footer() {
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Contact
+                  {t("footer.contact")}
                 </Link>
               </li>
             </ul>
@@ -109,14 +95,14 @@ export default function Footer() {
 
           {/* Resources Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Resources</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t("footer.resources")}</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Help Center
+                  {t("footer.helpCenter")}
                 </Link>
               </li>
               <li>
@@ -124,7 +110,7 @@ export default function Footer() {
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Logistics Blog
+                  {t("footer.logisticsBlog")}
                 </Link>
               </li>
               <li>
@@ -132,7 +118,7 @@ export default function Footer() {
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Labor Law Guide
+                  {t("footer.laborLawGuide")}
                 </Link>
               </li>
               <li>
@@ -140,7 +126,7 @@ export default function Footer() {
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Staffing Tips
+                  {t("footer.staffingTips")}
                 </Link>
               </li>
             </ul>
@@ -148,14 +134,14 @@ export default function Footer() {
 
           {/* Legal Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Legal</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t("footer.legal")}</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Privacy Policy
+                  {t("footer.privacyPolicy")}
                 </Link>
               </li>
               <li>
@@ -163,7 +149,7 @@ export default function Footer() {
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Terms of Service
+                  {t("footer.termsOfService")}
                 </Link>
               </li>
               <li>
@@ -171,7 +157,7 @@ export default function Footer() {
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Compliance
+                  {t("footer.compliance")}
                 </Link>
               </li>
               <li>
@@ -179,7 +165,7 @@ export default function Footer() {
                   href={localePath("#")}
                   className="text-gray-600 hover:text-blue-600"
                 >
-                  Moroccan Labor Laws
+                  {t("footer.moroccanLaborLaws")}
                 </Link>
               </li>
             </ul>
@@ -188,27 +174,41 @@ export default function Footer() {
 
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-200">
           <div className="text-gray-600 mb-4 md:mb-0">
-            © {currentYear} LogiStaff Morocco. All rights reserved.
+            © {currentYear} LogiStaff Morocco. {t("footer.allRightsReserved")}
           </div>
 
           <div className="flex items-center space-x-6">
             <LanguageSwitcher />
-            <a href="#" className="text-gray-400 hover:text-gray-500">
-              <span className="sr-only">Twitter</span>
-              <Twitter className="h-6 w-6" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-gray-500">
-              <span className="sr-only">LinkedIn</span>
-              <Linkedin className="h-6 w-6" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-gray-500">
-              <span className="sr-only">Facebook</span>
-              <Facebook className="h-6 w-6" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-gray-500">
-              <span className="sr-only">Instagram</span>
-              <Instagram className="h-6 w-6" />
-            </a>
+            <div className="flex space-x-4">
+              <Link
+                href="#"
+                className="text-gray-500 hover:text-blue-600"
+                aria-label="Twitter"
+              >
+                <Twitter className="w-5 h-5" />
+              </Link>
+              <Link
+                href="#"
+                className="text-gray-500 hover:text-blue-600"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="w-5 h-5" />
+              </Link>
+              <Link
+                href="#"
+                className="text-gray-500 hover:text-blue-600"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-5 h-5" />
+              </Link>
+              <Link
+                href="#"
+                className="text-gray-500 hover:text-blue-600"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-5 h-5" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

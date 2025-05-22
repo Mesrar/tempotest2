@@ -26,8 +26,23 @@ export function useTranslation() {
 
   // Update locale when pathname changes
   useEffect(() => {
-    setLocale(getLocaleFromPathname());
-  }, [pathname, getLocaleFromPathname]);
+    const pathLocale = getLocaleFromPathname();
+    if (pathLocale !== locale) {
+      setLocale(pathLocale);
+      
+      // Update document attributes
+      document.documentElement.lang = pathLocale;
+      document.documentElement.dir = getLocaleDirection(pathLocale);
+    }
+  }, [pathname, getLocaleFromPathname, locale]);
+
+  // Initialize locale from localStorage on client-side
+  useEffect(() => {
+    const savedLocale = localStorage.getItem("preferredLocale") as Locale;
+    if (savedLocale && locales.includes(savedLocale) && savedLocale !== locale) {
+      changeLocale(savedLocale);
+    }
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Change locale
   const changeLocale = useCallback(
@@ -53,6 +68,8 @@ export function useTranslation() {
 
       // Store the locale preference
       localStorage.setItem("preferredLocale", newLocale);
+      
+      // Update document attributes
       document.documentElement.lang = newLocale;
       document.documentElement.dir = getLocaleDirection(newLocale);
     },
