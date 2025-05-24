@@ -414,7 +414,7 @@ function MissionCard({ mission, onReview }: MissionCardProps) {
             </div>
             <div className="flex items-center">
               <Clock className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-              <span>{mission.totalHours * mission.hourlyRate} MAD (total)</span>
+              <span>{(mission.totalHours || 0) * (mission.hourlyRate || 0)} MAD (total)</span>
             </div>
           </div>
 

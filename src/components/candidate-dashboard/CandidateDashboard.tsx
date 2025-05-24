@@ -46,8 +46,12 @@ interface Candidate {
   phone: string;
   location: string;
   bio?: string;
-  hourlyRate: string;
+  hourlyRate?: string;
   certifications?: string[];
+  availability?: {
+    startDate: Date | null;
+    endDate: Date | null;
+  };
   experience?: {
     id: string;
     title: string;
@@ -286,9 +290,9 @@ export default function CandidateDashboard({
   const handleEditProfileSubmit = async (data: CandidateFormData) => {
     setIsSubmitting(true);
     try {
-      if (useRealData && profile) {
+      if (useRealData && profile && 'id' in profile) {
         // Utiliser la vraie implémentation si nous avons un profil réel
-        const { success, error } = await updateCandidateProfile(profile.id, data);
+        const { success, error } = await updateCandidateProfile((profile as any).id, data);
         
         if (!success) throw error;
         
@@ -322,7 +326,7 @@ export default function CandidateDashboard({
       await new Promise(resolve => setTimeout(resolve, 1500));
       console.log("Files to upload:", files);
       // Update local state or refetch documents
-      setActiveView("dashboard");
+      setActiveTab("profile");
     } catch (error) {
       console.error("Error uploading documents:", error);
     } finally {
@@ -386,9 +390,9 @@ export default function CandidateDashboard({
   // Fonction pour mettre à jour la disponibilité
   const handleUpdateAvailability = async (data: { isAvailable: boolean; startDate?: Date | null; endDate?: Date | null }) => {
     try {
-      if (useRealData && profile) {
+      if (useRealData && profile && 'id' in profile) {
         const { success, error } = await updateAvailability(
-          profile.id, 
+          (profile as any).id, 
           data.isAvailable, 
           data.startDate, 
           data.endDate
@@ -501,8 +505,8 @@ export default function CandidateDashboard({
               <CardContent>
                 <AvailabilityUpdateForm 
                   initialAvailable={candidate.isAvailable}
-                  initialStartDate={candidate.availabilityStart}
-                  initialEndDate={candidate.availabilityEnd}
+                  initialStartDate={candidate.availability?.startDate || null}
+                  initialEndDate={candidate.availability?.endDate || null}
                   onUpdate={handleUpdateAvailability}
                 />
               </CardContent>
@@ -519,8 +523,8 @@ export default function CandidateDashboard({
               acceptedJobs: mockJobMatches.filter(job => job.status === 'accepted').length,
               completedMissions: mockJobMatches.filter(job => job.status === 'completed').length,
               avgResponseTime: 45, // en minutes
-              daysAvailable: candidate.availabilityEnd ? 
-                Math.ceil((candidate.availabilityEnd.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0,
+              daysAvailable: candidate.availability?.endDate ? 
+                Math.ceil((candidate.availability.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0,
               averageRating: candidate.rating
             }}
           />
@@ -609,7 +613,7 @@ export default function CandidateDashboard({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Taux horaire</p>
-                  <p>{candidate.hourlyRate} MAD/h</p>
+                  <p>{(candidate as any).hourlyRate || "Non spécifié"} MAD/h</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Statut</p>
@@ -627,7 +631,7 @@ export default function CandidateDashboard({
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Compétences</p>
                 <div className="flex flex-wrap gap-1">
-                  {candidate.skills?.map((skill, i) => (
+                  {candidate.skills?.map((skill: string, i: number) => (
                     <Badge key={i} variant="secondary">{skill}</Badge>
                   ))}
                 </div>
@@ -636,7 +640,7 @@ export default function CandidateDashboard({
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Certifications</p>
                 <div className="flex flex-wrap gap-1">
-                  {candidate.certifications?.map((cert, i) => (
+                  {(candidate as any).certifications?.map((cert: string, i: number) => (
                     <Badge key={i} variant="outline">{cert}</Badge>
                   ))}
                 </div>
@@ -654,7 +658,7 @@ export default function CandidateDashboard({
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {candidate.experience.map((exp, index) => (
+                  {candidate.experience.map((exp: any, index: number) => (
                     <div key={exp.id} className="border-l-2 border-muted pl-4 pb-2 relative">
                       {/* Timeline dot */}
                       <div className="absolute w-3 h-3 bg-primary rounded-full -left-[7px] top-1.5" />
@@ -721,7 +725,7 @@ export default function CandidateDashboard({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {mockDocuments.map((doc) => (
+                  {mockDocuments.map((doc: any) => (
                     <div
                       key={doc.id}
                       className="flex items-center justify-between p-3 border rounded-md"

@@ -59,7 +59,11 @@ export function DocumentUploadPageClient({ locale, dict }: DocumentUploadPageCli
       }
 
       const uploadPromises = files.map(file => 
-        uploadDocument(profile.id, file, file.name)
+        uploadDocument({
+          staffId: profile.id,
+          file,
+          type: file.type,
+        })
       );
       
       await Promise.all(uploadPromises);
@@ -92,7 +96,10 @@ export function DocumentUploadPageClient({ locale, dict }: DocumentUploadPageCli
         throw new Error("Document non trouvé");
       }
       
-      const { success, error } = await deleteDocument(id, documentToDelete.file_path);
+      const { success, error } = await deleteDocument({
+        id,
+        filePath: documentToDelete.file_path
+      });
       
       if (!success) {
         throw error;

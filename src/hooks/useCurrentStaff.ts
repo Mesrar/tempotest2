@@ -147,7 +147,7 @@ export function useCurrentStaff(): UseCurrentStaffResult {
             .eq('staff_id', profileData.id);
           
           if (matchesError) throw matchesError;
-          setJobMatches(matchesData || []);
+          setJobMatches((matchesData || []) as unknown as JobMatch[]);
         }
       } catch (err: any) {
         console.error('Error loading staff data:', err);

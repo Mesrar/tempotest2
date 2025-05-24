@@ -9,9 +9,9 @@ import { getDictionary } from "@/lib/dictionary";
 export default async function EditJobPage({
   params,
 }: {
-  params: { locale: Locale; id: string };
+  params: Promise<{ locale: Locale; id: string }>;
 }) {
-  const { locale, id } = params;
+  const { locale, id } = await params;
   const dict = await getDictionary(locale);
   const supabase = await createClient();
 

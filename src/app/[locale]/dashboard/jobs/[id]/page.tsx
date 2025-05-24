@@ -28,9 +28,9 @@ import CandidatesList from "@/components/candidates-list";
 export default async function JobDetailsPage({
   params,
 }: {
-  params: { locale: Locale; id: string };
+  params: Promise<{ locale: Locale; id: string }>;
 }) {
-  const { locale, id } = params;
+  const { locale, id } = await params;
   const dict = await getDictionary(locale);
   const supabase = await createClient();
 
@@ -132,7 +132,7 @@ export default async function JobDetailsPage({
                       <span>
                         {job.job_type
                           .replace(/-/g, " ")
-                          .replace(/\b\w/g, (c) => c.toUpperCase())}
+                          .replace(/\b\w/g, (c: string) => c.toUpperCase())}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">

@@ -107,7 +107,7 @@ export async function updateCandidateProfile(candidateId: string, data: Candidat
         candidate_id: candidateId,
         title: exp.title,
         company: exp.company,
-        location: exp.location || '',
+        location: (exp as any).location || '',
         start_date: exp.startDate.toISOString(),
         end_date: exp.isCurrent ? null : (exp.endDate ? exp.endDate.toISOString() : null),
         is_current: exp.isCurrent,

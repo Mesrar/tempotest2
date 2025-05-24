@@ -9,12 +9,12 @@ import Link from "next/link";
 import { PlusCircle, Briefcase, Clock, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-export default async function JobsPage({
+export default async function JobDashboard({
   params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
-  const { locale } = params;
+  const { locale } = await params;
   const dict = await getDictionary(locale);
   const supabase = await createClient();
 

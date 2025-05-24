@@ -69,8 +69,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       try {
         // Récupérer d'abord le rôle depuis les métadonnées de la session
-        const role = session.user.role || 
-                     session.user.user_metadata?.role || 
+        const role = (session.user as any).role || 
+                     (session.user.user_metadata as any)?.role || 
                      'user';
         
         setUserRole(role);

@@ -5,9 +5,9 @@ import { Locale } from "@/lib/i18n";
 export default async function TranslatedDocumentUploader({
   params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
-  const { locale } = params;
+  const { locale } = await params;
   const dict = await getDictionary(locale);
 
   return <DocumentUploadPageClient locale={locale} dict={dict} />;

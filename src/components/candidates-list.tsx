@@ -39,9 +39,18 @@ interface Candidate {
 }
 
 export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
-  const { data: candidates = [], isLoading: loading, error } = useCandidates(jobId);
+  const supabase = useSupabase();
+  const { data: candidates = [], isLoading: loading, error, refetch } = useCandidates(jobId);
   const toggleShortlistMutation = useToggleShortlist();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [candidatesList, setCandidates] = useState<Candidate[]>([]);
+
+  // Update local candidates list when data changes
+  useEffect(() => {
+    if (candidates) {
+      setCandidates(candidates);
+    }
+  }, [candidates]);
 
   // Handle errors
   useEffect(() => {
@@ -99,7 +108,7 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
 
       // Update local state
       setCandidates(
-        candidates.map((candidate) =>
+        candidatesList?.map((candidate) =>
           candidate.id === candidateId
             ? {
                 ...candidate,
@@ -107,7 +116,7 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
                 offer_sent_at: new Date().toISOString(),
               }
             : candidate,
-        ),
+        ) || [],
       );
 
       toast({
@@ -197,7 +206,7 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
     );
   }
 
-  if (candidates.length === 0) {
+  if (candidatesList?.length === 0) {
     return (
       <div className="text-center py-12">
         <UserCheck className="h-12 w-12 mx-auto text-gray-400 mb-4" />
@@ -216,7 +225,7 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
 
       {/* Candidates list */}
       <div className="space-y-4">
-        {candidates.map((candidate) => (
+        {candidatesList?.map((candidate) => (
           <div
             key={candidate.id}
             className="border rounded-lg p-4 hover:shadow-sm transition-shadow"
