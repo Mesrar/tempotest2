@@ -11,10 +11,11 @@ import { Locale } from "@/lib/i18n";
 import TranslatedJoinStaff from "@/components/translated-join-staff";
 
 export default async function JoinStaff({
-  params: { locale },
+  params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
+  const { locale } = await params;
   const supabase = await createClient();
 
   const {

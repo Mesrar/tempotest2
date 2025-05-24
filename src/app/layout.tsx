@@ -6,6 +6,7 @@ import "./globals.css";
 import "./rtl.css"; // Import des styles spécifiques pour RTL
 import "./rtl-extras.css"; // Styles RTL supplémentaires
 import I18nProvider from "@/components/i18n-provider";
+import { SupabaseProvider } from "@/context/supabase-provider";
 import { Locale } from "@/lib/i18n";
 import "@/lib/check-env";
 
@@ -18,24 +19,24 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-  params,
 }: Readonly<{
   children: React.ReactNode;
-  params: { locale?: Locale };
 }>) {
-  const locale = params.locale || "en";
+  const locale: Locale = "en"; // Default locale for root layout
 
   return (
     <html
       lang={locale}
-      dir={locale === "ar" ? "rtl" : "ltr"}
+      dir={locale === "ar" as any ? "rtl" : "ltr"}
       suppressHydrationWarning
     >
       <Script src="https://api.tempolabs.ai/proxy-asset?url=https://storage.googleapis.com/tempo-public-assets/error-handling.js" />
       <body className={inter.className}>
         <I18nProvider initialLocale={locale as Locale}>
-          {children}
-          <TempoInit />
+          <SupabaseProvider>
+            {children}
+            <TempoInit />
+          </SupabaseProvider>
         </I18nProvider>
       </body>
     </html>

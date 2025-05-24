@@ -9,14 +9,15 @@ import { Locale } from "@/lib/i18n";
 import TranslatedSignUp from "@/components/translated-sign-up";
 
 interface SignUpProps {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
   searchParams: Promise<Message>;
 }
 
 export default async function LocalizedSignUpPage({
-  params: { locale },
+  params,
   searchParams
 }: SignUpProps) {
+  const { locale } = await params;
   const message = await searchParams;
 
   if ("message" in message) {

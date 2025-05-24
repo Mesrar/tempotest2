@@ -6,10 +6,11 @@ import Footer from "@/components/footer";
 import TranslatedPricing from "@/components/translated-pricing";
 
 export default async function Pricing({
-  params: { locale },
+  params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
+    const { locale } = await params;
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 

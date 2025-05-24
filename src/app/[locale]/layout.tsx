@@ -7,13 +7,14 @@ export const metadata: Metadata = {
   description: "AI-Powered Temporary Logistics Staffing Platform for Morocco",
 };
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
-  params: { locale },
+  params,
 }: {
   children: ReactNode;
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
+  const { locale } = await params;
   return <>{children}</>;
 }
 

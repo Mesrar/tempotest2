@@ -5,14 +5,15 @@ import { forgotPasswordAction } from "@/app/actions";
 import TranslatedForgotPassword from "@/components/translated-forgot-password";
 
 interface ForgotPasswordProps {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
   searchParams: Promise<Message>;
 }
 
 export default async function LocalizedForgotPasswordPage({
-  params: { locale },
+  params,
   searchParams
 }: ForgotPasswordProps) {
+  const { locale } = await params;
   const message = await searchParams;
 
   if ("message" in message) {

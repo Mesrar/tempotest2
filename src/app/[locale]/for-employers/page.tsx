@@ -5,10 +5,11 @@ import { createClient } from "../../../../supabase/server";
 import { Locale } from "@/lib/i18n";
 
 export default async function ForEmployers({
-  params: { locale },
+  params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
+  const { locale } = await params;
   const supabase = await createClient();
 
   const {
@@ -18,7 +19,7 @@ export default async function ForEmployers({
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar locale={locale} />
-      <TranslatedForEmployers locale={locale} />
+      <TranslatedForEmployers />
       <Footer />
     </div>
   );

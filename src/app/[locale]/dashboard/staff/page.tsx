@@ -1,15 +1,18 @@
 import { createClient } from "../../../../../supabase/server";
 import { redirect } from "next/navigation";
 import { Locale } from "@/lib/i18n";
+import { getDictionary } from "@/lib/dictionary";
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { SubscriptionCheck } from "@/components/subscription-check";
 import { UserRole, requireStaffRole } from "@/utils/rbac";
 
 interface StaffDashboardProps {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }
 
-export default async function StaffDashboard({ params: { locale } }: StaffDashboardProps) {
+export default async function StaffDashboard({ params }: StaffDashboardProps) {
+  const { locale } = await params;
+  const dict = await getDictionary(locale);
   const supabase = await createClient();
 
   const {
@@ -29,7 +32,7 @@ export default async function StaffDashboard({ params: { locale } }: StaffDashbo
 
   return (
     <SubscriptionCheck>
-      <DashboardNavbar />
+      <DashboardNavbar locale={locale} dict={dict} />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg shadow p-6 mb-6">

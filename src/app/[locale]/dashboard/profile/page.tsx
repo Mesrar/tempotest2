@@ -1,15 +1,18 @@
 import { createClient } from "../../../../../supabase/server";
 import { redirect } from "next/navigation";
 import { Locale } from "@/lib/i18n";
+import { getDictionary } from "@/lib/dictionary";
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { SubscriptionCheck } from "@/components/subscription-check";
 import { UserRole } from "@/utils/rbac";
 
 interface ProfilePageProps {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }
 
-export default async function ProfilePage({ params: { locale } }: ProfilePageProps) {
+export default async function ProfilePage({ params }: ProfilePageProps) {
+  const { locale } = await params;
+  const dict = await getDictionary(locale);
   const supabase = await createClient();
 
   const {
@@ -32,7 +35,7 @@ export default async function ProfilePage({ params: { locale } }: ProfilePagePro
 
   return (
     <SubscriptionCheck>
-      <DashboardNavbar />
+      <DashboardNavbar locale={locale} dict={dict} />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Profil Utilisateur</h1>

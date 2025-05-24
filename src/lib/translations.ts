@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "./i18n";
+import { Locale } from "./i18n";
 import enTranslations from '@/locales/en.json';
 import frTranslations from '@/locales/fr.json';
 import arTranslations from '@/locales/ar.json';

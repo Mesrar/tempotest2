@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "../../supabase/client";
+import { useSupabase } from "@/context/supabase-provider";
+import { useCandidates, useToggleShortlist } from "@/hooks/use-supabase-query";
 import { Button } from "@/components/ui/button";
 import { Locale } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
@@ -38,42 +39,20 @@ interface Candidate {
 }
 
 export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
-  const supabase = createClient();
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: candidates = [], isLoading: loading, error } = useCandidates(jobId);
+  const toggleShortlistMutation = useToggleShortlist();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Fetch candidates for the job
+  // Handle errors
   useEffect(() => {
-    const fetchCandidates = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("job_candidates")
-          .select(
-            `
-            *,
-            user:candidate_id(id, name, avatar_url, email)
-          `,
-          )
-          .eq("job_id", jobId)
-          .order("match_score", { ascending: false });
-
-        if (error) throw error;
-        setCandidates(data as unknown as Candidate[]);
-      } catch (error: any) {
-        console.error("Error fetching candidates:", error);
-        toast({
-          title: "Error loading candidates",
-          description: error.message || "Failed to load candidates",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCandidates();
-  }, [jobId, supabase]);
+    if (error) {
+      toast({
+        title: "Error loading candidates",
+        description: error.message || "Failed to load candidates",
+        variant: "destructive",
+      });
+    }
+  }, [error]);
 
   // Toggle shortlist status
   const toggleShortlist = async (
@@ -82,21 +61,10 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
   ) => {
     setActionLoading(candidateId);
     try {
-      const { error } = await supabase
-        .from("job_candidates")
-        .update({ shortlisted: !currentStatus })
-        .eq("id", candidateId);
-
-      if (error) throw error;
-
-      // Update local state
-      setCandidates(
-        candidates.map((candidate) =>
-          candidate.id === candidateId
-            ? { ...candidate, shortlisted: !currentStatus }
-            : candidate,
-        ),
-      );
+      await toggleShortlistMutation.mutateAsync({
+        candidateId,
+        shortlisted: !currentStatus,
+      });
 
       toast({
         title: currentStatus ? "Removed from shortlist" : "Added to shortlist",
