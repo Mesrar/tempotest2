@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Locale } from "@/lib/i18n";
-import { createClient } from "../../supabase/client";
+import { useSupabase } from "@/context/supabase-provider";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
@@ -20,7 +20,7 @@ interface JobEditFormProps {
 
 export default function JobEditForm({ locale, job }: JobEditFormProps) {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useSupabase();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state

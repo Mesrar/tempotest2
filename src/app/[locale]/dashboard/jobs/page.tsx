@@ -4,15 +4,18 @@ import DashboardNavbar from "@/components/dashboard-navbar";
 import { Button } from "@/components/ui/button";
 import { SubscriptionCheck } from "@/components/subscription-check";
 import { Locale } from "@/lib/i18n";
+import { getDictionary } from "@/lib/dictionary";
 import Link from "next/link";
 import { PlusCircle, Briefcase, Clock, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-export default async function JobsPage({
-  params: { locale },
+export default async function JobDashboard({
+  params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
+  const { locale } = await params;
+  const dict = await getDictionary(locale);
   const supabase = await createClient();
 
   const {
@@ -51,7 +54,7 @@ export default async function JobsPage({
 
   return (
     <SubscriptionCheck>
-      <DashboardNavbar />
+      <DashboardNavbar locale={locale} dict={dict} />
       <main className="w-full">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">

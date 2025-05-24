@@ -8,10 +8,11 @@ import TranslatedDashboard from "@/components/translated-dashboard";
 import { UserRole } from "@/utils/rbac";
 
 export default async function Dashboard({
-  params: { locale },
+  params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
+  const { locale } = await params;
   const supabase = await createClient();
 
   const {
@@ -199,7 +200,7 @@ export default async function Dashboard({
 
   return (
     <SubscriptionCheck>
-      <DashboardNavbar />
+     
       <TranslatedDashboard 
         locale={locale}
         activeJobsCount={activeJobsCount}

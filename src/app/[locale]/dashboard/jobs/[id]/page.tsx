@@ -4,6 +4,7 @@ import DashboardNavbar from "@/components/dashboard-navbar";
 import { Button } from "@/components/ui/button";
 import { SubscriptionCheck } from "@/components/subscription-check";
 import { Locale } from "@/lib/i18n";
+import { getDictionary } from "@/lib/dictionary";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,10 +26,12 @@ import {
 import CandidatesList from "@/components/candidates-list";
 
 export default async function JobDetailsPage({
-  params: { locale, id },
+  params,
 }: {
-  params: { locale: Locale; id: string };
+  params: Promise<{ locale: Locale; id: string }>;
 }) {
+  const { locale, id } = await params;
+  const dict = await getDictionary(locale);
   const supabase = await createClient();
 
   const {
@@ -83,7 +86,7 @@ export default async function JobDetailsPage({
 
   return (
     <SubscriptionCheck>
-      <DashboardNavbar />
+      <DashboardNavbar locale={locale} dict={dict} />
       <main className="w-full">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">
@@ -129,7 +132,7 @@ export default async function JobDetailsPage({
                       <span>
                         {job.job_type
                           .replace(/-/g, " ")
-                          .replace(/\b\w/g, (c) => c.toUpperCase())}
+                          .replace(/\b\w/g, (c: string) => c.toUpperCase())}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">

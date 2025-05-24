@@ -9,14 +9,15 @@ import { Locale } from "@/lib/i18n";
 import TranslatedSignIn from "@/components/translated-sign-in";
 
 interface LoginProps {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
   searchParams: Promise<Message>;
 }
 
 export default async function LocalizedSignInPage({ 
-  params: { locale }, 
+  params, 
   searchParams 
 }: LoginProps) {
+  const { locale } = await params;
   const message = await searchParams;
 
   if ("message" in message) {

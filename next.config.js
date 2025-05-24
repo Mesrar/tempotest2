@@ -9,7 +9,7 @@ const nextConfig = {
       // Cette option permet de désactiver la vérification stricte des en-têtes pour les Server Actions
       allowedOrigins: [
         // Domaine GitHub Codespaces
-        "fictional-fishstick-46r97vr4g7fqqp6-3001.app.github.dev", 
+        "upgraded-dollop-559pqr9jjw37pv9-3000.app.github.dev/", 
         // Domaine local
         "localhost:3000",
       ],
@@ -25,8 +25,9 @@ if (process.env.NEXT_PUBLIC_TEMPO) {
     // NextJS 13.4.8 up to 14.1.3:
     // swcPlugins: [[require.resolve("tempo-devtools/swc/0.86"), {}]],
     // NextJS 14.1.3 to 14.2.11:
-    swcPlugins: [[require.resolve("tempo-devtools/swc/0.90"), {}]],
+    // swcPlugins: [[require.resolve("tempo-devtools/swc/0.90"), {}]],
     // NextJS 15+ (Not yet supported, coming soon)
+    // Temporairement désactivé pour Next.js 15+ en attendant une mise à jour du plugin
   };
 }
 

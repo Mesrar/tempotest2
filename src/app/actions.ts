@@ -93,8 +93,8 @@ export const signInAction = async (formData: FormData) => {
   // Redirection basée sur le rôle de l'utilisateur
   const userRole = data.user?.user_metadata?.role;
   
-  if (userRole === 'staff') {
-    return redirect(`/${locale}/dashboard?role=staff`);
+  if (userRole === 'staff' || userRole === 'candidate' || userRole === 'worker') {
+    return redirect(`/${locale}/dashboard/candidate`);
   }
   
   return redirect(`/${locale}/dashboard`);

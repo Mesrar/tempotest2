@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "../../supabase/client";
+import { useSupabase } from "@/context/supabase-provider";
+import { useCandidates, useToggleShortlist } from "@/hooks/use-supabase-query";
 import { Button } from "@/components/ui/button";
 import { Locale } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
@@ -38,42 +39,29 @@ interface Candidate {
 }
 
 export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
-  const supabase = createClient();
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const supabase = useSupabase();
+  const { data: candidates = [], isLoading: loading, error, refetch } = useCandidates(jobId);
+  const toggleShortlistMutation = useToggleShortlist();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [candidatesList, setCandidates] = useState<Candidate[]>([]);
 
-  // Fetch candidates for the job
+  // Update local candidates list when data changes
   useEffect(() => {
-    const fetchCandidates = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("job_candidates")
-          .select(
-            `
-            *,
-            user:candidate_id(id, name, avatar_url, email)
-          `,
-          )
-          .eq("job_id", jobId)
-          .order("match_score", { ascending: false });
+    if (candidates) {
+      setCandidates(candidates);
+    }
+  }, [candidates]);
 
-        if (error) throw error;
-        setCandidates(data as unknown as Candidate[]);
-      } catch (error: any) {
-        console.error("Error fetching candidates:", error);
-        toast({
-          title: "Error loading candidates",
-          description: error.message || "Failed to load candidates",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCandidates();
-  }, [jobId, supabase]);
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error loading candidates",
+        description: error.message || "Failed to load candidates",
+        variant: "destructive",
+      });
+    }
+  }, [error]);
 
   // Toggle shortlist status
   const toggleShortlist = async (
@@ -82,21 +70,10 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
   ) => {
     setActionLoading(candidateId);
     try {
-      const { error } = await supabase
-        .from("job_candidates")
-        .update({ shortlisted: !currentStatus })
-        .eq("id", candidateId);
-
-      if (error) throw error;
-
-      // Update local state
-      setCandidates(
-        candidates.map((candidate) =>
-          candidate.id === candidateId
-            ? { ...candidate, shortlisted: !currentStatus }
-            : candidate,
-        ),
-      );
+      await toggleShortlistMutation.mutateAsync({
+        candidateId,
+        shortlisted: !currentStatus,
+      });
 
       toast({
         title: currentStatus ? "Removed from shortlist" : "Added to shortlist",
@@ -131,7 +108,7 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
 
       // Update local state
       setCandidates(
-        candidates.map((candidate) =>
+        candidatesList?.map((candidate) =>
           candidate.id === candidateId
             ? {
                 ...candidate,
@@ -139,7 +116,7 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
                 offer_sent_at: new Date().toISOString(),
               }
             : candidate,
-        ),
+        ) || [],
       );
 
       toast({
@@ -229,7 +206,7 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
     );
   }
 
-  if (candidates.length === 0) {
+  if (candidatesList?.length === 0) {
     return (
       <div className="text-center py-12">
         <UserCheck className="h-12 w-12 mx-auto text-gray-400 mb-4" />
@@ -248,7 +225,7 @@ export default function CandidatesList({ jobId, locale }: CandidatesListProps) {
 
       {/* Candidates list */}
       <div className="space-y-4">
-        {candidates.map((candidate) => (
+        {candidatesList?.map((candidate) => (
           <div
             key={candidate.id}
             className="border rounded-lg p-4 hover:shadow-sm transition-shadow"

@@ -4,13 +4,16 @@ import DashboardNavbar from "@/components/dashboard-navbar";
 import { SubscriptionCheck } from "@/components/subscription-check";
 import { InfoIcon } from "lucide-react";
 import { Locale } from "@/lib/i18n";
+import { getDictionary } from "@/lib/dictionary";
 import TranslatedPostJob from "@/components/translated-post-job";
 
 export default async function PostJob({
-  params: { locale },
+  params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
+  const { locale } = await params;
+  const dict = await getDictionary(locale);
   const supabase = await createClient();
 
   const {
@@ -23,7 +26,7 @@ export default async function PostJob({
 
   return (
     <SubscriptionCheck>
-      <DashboardNavbar />
+      <DashboardNavbar locale={locale} dict={dict} />
       <TranslatedPostJob locale={locale} userId={user.id} />
     </SubscriptionCheck>
   );

@@ -6,10 +6,11 @@ import { createClient } from "../../../supabase/server";
 import { Locale } from "@/lib/i18n";
 
 export default async function Home({
-  params: { locale },
+  params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
+  const { locale } = await params;
   const supabase = await createClient();
   const {
     data: { user },

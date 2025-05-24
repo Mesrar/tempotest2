@@ -6,11 +6,12 @@ import Navbar from "@/components/navbar";
 import { Locale } from "@/lib/i18n";
 import TranslatedSuccess from "@/components/translated-success";
 
-export default function SuccessPage({
-  params: { locale },
+export default async function SuccessPage({
+  params,
 }: {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }) {
+  const { locale } = await params;
   return (
     <>
       <Navbar locale={locale} />
