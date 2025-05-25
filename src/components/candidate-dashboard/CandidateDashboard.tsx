@@ -3,18 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CandidateProfileCard } from "./CandidateProfileCard";
 import { CandidateProfileForm, CandidateFormData } from "./CandidateProfileForm";
-import { DocumentUpload } from "./DocumentUpload";
 import { JobMatches } from "./JobMatches";
-import { JobFilters } from "./JobFilters";
-import { NotificationCenter } from "./NotificationCenter";
-import { CandidateStats } from "./CandidateStats";
-import { AvailabilityUpdateForm } from "./AvailabilityUpdateForm";
-import { CandidateReviews } from "./CandidateReviews";
+import { SmartNotifications } from "./SmartNotifications";
+import { AnimationWrapper, StaggerContainer, FadeInCard, SlideIn } from "./AnimationWrapper";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
-import { mapSupabaseDataToComponentProps } from "./mappers";
 import { updateCandidateProfile, updateAvailability, acceptJobMatch, rejectJobMatch } from "./staffDataService";
 import {
   BriefcaseIcon,
@@ -25,7 +18,8 @@ import {
   Bell,
   Settings,
   HistoryIcon,
-  Loader2
+  Loader2,
+  CheckIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,197 +96,131 @@ export default function CandidateDashboard({
   jobMatches = []
 }: DashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("profile");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
   // Récupérer les données du candidat depuis Supabase
-  // En environnement de migration, simulons ces valeurs plutôt que d'utiliser le hook
-  const user = null;
-  const profile = null;
-  const experiences: any[] = [];
-  const supabaseDocuments: any[] = [];
-  const supabaseJobMatches: any[] = [];
-  const loading = false;
-  const error = null;
+  const { user, profile, experiences, documents: supabaseDocuments, jobMatches: supabaseJobMatches, loading, error } = useCurrentStaff();
+  
+  // Gestion des états de chargement et d'erreur
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-64" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error("Dashboard error:", error);
+    // Continuer avec les données par défaut au lieu de bloquer complètement
+  }
+
+  if (!user && !loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <h2 className="text-xl font-semibold mb-4">Connexion requise</h2>
+            <p className="text-muted-foreground mb-4">
+              Vous devez être connecté pour accéder à votre dashboard.
+            </p>
+            <Button onClick={() => window.location.href = '/fr/sign-in'}>
+              Se connecter
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   // Configuration des mises à jour en temps réel
-  // Fonction pour rafraîchir les données (simulée pour l'instant)
   const refreshData = () => {
-    console.log("Refreshing data...");
+    // Cette fonction sera appelée automatiquement par le hook useCurrentStaff
+    console.log("Data refreshed automatically");
   };
-  
-  // Simuler des nouvelles correspondances et notifications
-  const newJobMatches: any[] = [];
-  const newNotifications: any[] = [];
-  
-  // Déterminer si nous utilisons des données réelles ou simulées
-  const useRealData = !!profile;
   
   // Convertir les données Supabase au format attendu par les composants
-  const mappedData = useRealData ? mapSupabaseDataToComponentProps({ user, profile, experiences, documents: supabaseDocuments, jobMatches: supabaseJobMatches, loading, error }) : null;
-  
-  // Mock candidate data for demo purposes
-  const candidate = mappedData?.candidate || candidateData || {
+  const candidate = profile ? {
+    id: profile.id,
+    name: profile.full_name,
+    avatarUrl: profile.avatar_url || "",
+    isAvailable: profile.is_available,
+    rating: profile.rating || undefined,
+    skills: profile.skills || [],
+    email: profile.email,
+    phone: profile.phone,
+    location: profile.location,
+    bio: profile.bio || undefined,
+    hourlyRate: undefined, // À ajouter au schéma si nécessaire
+    certifications: [], // À ajouter au schéma si nécessaire
+    experience: experiences.map(exp => ({
+      id: exp.id,
+      title: exp.title,
+      company: exp.company,
+      startDate: new Date(exp.start_date),
+      endDate: exp.end_date ? new Date(exp.end_date) : undefined,
+      description: exp.description || "",
+      isCurrent: exp.is_current
+    })),
+    availabilityStart: profile.availability_start ? new Date(profile.availability_start) : undefined,
+    availabilityEnd: profile.availability_end ? new Date(profile.availability_end) : undefined
+  } : candidateData || {
     id: "1",
-    name: "Mohammed Alaoui",
+    name: "Utilisateur Invité",
     avatarUrl: "",
-    isAvailable: true,
-    rating: 4.5,
-    skills: ["Manutention", "Logistique", "Cariste", "CACES 3"],
-    email: "mohammed.alaoui@exemple.com",
-    phone: "+212 612345678",
-    location: "Casablanca, Maroc",
-    bio: "Professionnel de la logistique avec 5 ans d'expérience dans la manutention et la gestion d'entrepôt.",
-    hourlyRate: "60",
-    certifications: ["CACES 3", "CACES 5", "Permis B"],
-    experience: [
-      {
-        id: "exp1",
-        title: "Cariste",
-        company: "LogiMaroc",
-        startDate: new Date(2022, 1, 15),
-        endDate: new Date(2023, 3, 30),
-        description: "Gestion de l'entrepôt et des opérations de manutention",
-        isCurrent: false
-      }
-    ],
-    availabilityStart: new Date(),
-    availabilityEnd: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) // 90 days from now
+    isAvailable: false,
+    skills: [],
+    email: "",
+    phone: "",
+    location: "",
+    experience: []
   };
 
-  // Job matches from Supabase or mock data
-  const mockJobMatches = useRealData 
-    // Si on a des données réelles, fusionner les offres d'emploi existantes avec les nouvelles
-    ? [...(mappedData?.jobMatches || []), ...newJobMatches.map(match => ({
+  // Job matches from Supabase
+  const mockJobMatches = supabaseJobMatches.length > 0 
+    ? supabaseJobMatches.map(match => ({
         id: match.id,
         title: match.job.title,
         company: {
-          id: match.job.company.id,
-          name: match.job.company.name,
-          logoUrl: match.job.company.logo_url
+          id: match.job.id,
+          name: match.job.company_name,
+          logoUrl: undefined // À ajouter au schéma si nécessaire
         },
         location: match.job.location,
         startDate: new Date(match.job.start_date),
         endDate: match.job.end_date ? new Date(match.job.end_date) : undefined,
         salary: match.job.hourly_rate,
-        skills: match.job.skills_required,
-        matchPercentage: match.match_percentage,
-        status: match.status
-      }))]
-    // Sinon, utiliser les données simulées
-    : (jobMatches.length > 0 ? jobMatches : [
-      {
-        id: "job1",
-        title: "Cariste - Mission Temporaire",
-        company: {
-          id: "comp1",
-          name: "LogiTrans Maroc"
-        },
-        location: "Zone Industrielle, Casablanca",
-        startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-        endDate: new Date(Date.now() + 16 * 24 * 60 * 60 * 1000), // 2 weeks after start
-        salary: 65,
-        skills: ["Cariste", "CACES 3", "Manutention", "Inventaire"],
-        matchPercentage: 95,
-        status: 'pending'
-      },
-      {
-        id: "job2",
-        title: "Agent Logistique",
-        company: {
-          id: "comp2",
-          name: "MedLogistics"
-        },
-        location: "Tanger, Maroc",
-        startDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-        endDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000),
-        salary: 55,
-        skills: ["Logistique", "Préparation de commandes", "Gestion de stock"],
-        matchPercentage: 80,
-        status: 'pending'
-      },
-      {
-        id: "job3",
-        title: "Manutentionnaire",
-        company: {
-          id: "comp3",
-          name: "Tanger Med Logistics"
-        },
-        location: "Tanger, Maroc",
-        startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        endDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
-        salary: 50,
-        skills: ["Manutention", "Chargement", "Déchargement"],
-        matchPercentage: 75,
-        status: 'accepted'
-      }
-    ]);
+        skills: [], // À ajouter au schéma des jobs si nécessaire
+        matchPercentage: 85, // Calculer selon votre logique
+        status: match.status as 'pending' | 'accepted' | 'rejected' | 'completed'
+      }))
+    : (jobMatches.length > 0 ? jobMatches : []);
 
-  // Documents from Supabase or mock data
-  const mockDocuments = mappedData?.documents || (documents.length > 0 ? documents : [
-    {
-      id: "doc1",
-      name: "Certification CACES 3.pdf",
-      url: "#",
-      type: "application/pdf",
-      uploadedAt: new Date(2023, 5, 15)
-    },
-    {
-      id: "doc2",
-      name: "Permis de conduire.png",
-      url: "#",
-      type: "image/png",
-      uploadedAt: new Date(2023, 2, 10)
-    }
-  ]);
-
-  // Mock reviews and references for demo purposes
-  const mockReviews = [
-    {
-      id: "rev1",
-      reviewer: {
-        name: "Karim Bennani",
-        company: "LogiTrans Maroc",
-        position: "Responsable Logistique",
-      },
-      rating: 5,
-      comment: "Mohammed est un excellent travailleur, très ponctuel et attentif aux détails. Il a géré notre équipe de manutentionnaires avec efficacité.",
-      date: new Date(2023, 3, 15),
-      missionName: "Gestion d'entrepôt - LogiMaroc"
-    },
-    {
-      id: "rev2",
-      reviewer: {
-        name: "Fatima Zahra",
-        company: "MedLogistics",
-        position: "Directrice des Opérations",
-      },
-      rating: 4,
-      comment: "Bon travail sur l'inventaire de fin de mois. A respecté les délais et a été précis dans son travail.",
-      date: new Date(2023, 1, 22),
-      missionName: "Inventaire - MedLogistics"
-    }
-  ];
-
-  const mockReferences = [
-    {
-      id: "ref1",
-      name: "Hassan Alami",
-      company: "TransLog Maroc",
-      position: "Directeur Général",
-      email: "h.alami@translog.ma",
-      phone: "+212 661234567",
-      message: "J'ai travaillé avec Mohammed pendant 2 ans. C'est un professionnel dévoué et compétent que je recommande sans hésitation."
-    }
-  ];
+  // Documents from Supabase
+  const mockDocuments = supabaseDocuments.length > 0 
+    ? supabaseDocuments.map(doc => ({
+        id: doc.id,
+        name: doc.name,
+        url: doc.public_url || doc.file_path,
+        type: doc.file_type,
+        uploadedAt: new Date(doc.upload_date)
+      }))
+    : (documents.length > 0 ? documents : []);
 
   const handleEditProfileSubmit = async (data: CandidateFormData) => {
     setIsSubmitting(true);
     try {
-      if (useRealData && profile && 'id' in profile) {
-        // Utiliser la vraie implémentation si nous avons un profil réel
-        const { success, error } = await updateCandidateProfile((profile as any).id, data);
+      if (profile?.id) {
+        // Utiliser la vraie implémentation avec les données Supabase
+        const { success, error } = await updateCandidateProfile(profile.id, data);
         
         if (!success) throw error;
         
@@ -301,7 +229,7 @@ export default function CandidateDashboard({
           description: "Votre profil a été mis à jour avec succès.",
         });
       } else {
-        // Utiliser l'implémentation simulée
+        // Fallback si pas de profil
         await new Promise(resolve => setTimeout(resolve, 1000));
         console.log("Profile data submitted:", data);
       }
@@ -325,8 +253,8 @@ export default function CandidateDashboard({
       // Mock API call - would be a real API call to Supabase Storage
       await new Promise(resolve => setTimeout(resolve, 1500));
       console.log("Files to upload:", files);
-      // Update local state or refetch documents
-      setActiveTab("profile");
+      // Redirect to documents page after upload
+      router.push("/fr/dashboard/candidate/documents");
     } catch (error) {
       console.error("Error uploading documents:", error);
     } finally {
@@ -343,17 +271,14 @@ export default function CandidateDashboard({
 
   const handleAcceptJob = async (jobId: string) => {
     try {
-      if (useRealData) {
-        const { success, error } = await acceptJobMatch(jobId);
-        if (!success) throw error;
-        
-        // Rafraîchir les données après acceptation
-        refreshData();
-      } else {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        console.log("Job accepted:", jobId);
-      }
+      const { success, error } = await acceptJobMatch(jobId);
+      if (!success) throw error;
+      
+      // Les données seront automatiquement rafraîchies par le hook useCurrentStaff
+      toast({
+        title: "Offre acceptée",
+        description: "Vous avez accepté cette offre d'emploi.",
+      });
     } catch (error) {
       console.error("Error accepting job:", error);
       toast({
@@ -366,17 +291,14 @@ export default function CandidateDashboard({
 
   const handleRejectJob = async (jobId: string) => {
     try {
-      if (useRealData) {
-        const { success, error } = await rejectJobMatch(jobId);
-        if (!success) throw error;
-        
-        // Rafraîchir les données après refus
-        refreshData();
-      } else {
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        console.log("Job rejected:", jobId);
-      }
+      const { success, error } = await rejectJobMatch(jobId);
+      if (!success) throw error;
+      
+      // Les données seront automatiquement rafraîchies par le hook useCurrentStaff
+      toast({
+        title: "Offre refusée",
+        description: "Vous avez refusé cette offre d'emploi.",
+      });
     } catch (error) {
       console.error("Error rejecting job:", error);
       toast({
@@ -390,17 +312,21 @@ export default function CandidateDashboard({
   // Fonction pour mettre à jour la disponibilité
   const handleUpdateAvailability = async (data: { isAvailable: boolean; startDate?: Date | null; endDate?: Date | null }) => {
     try {
-      if (useRealData && profile && 'id' in profile) {
+      if (profile?.id) {
         const { success, error } = await updateAvailability(
-          (profile as any).id, 
+          profile.id, 
           data.isAvailable, 
           data.startDate, 
           data.endDate
         );
         if (!success) throw error;
+        
+        toast({
+          title: "Disponibilité mise à jour",
+          description: "Votre disponibilité a été mise à jour avec succès.",
+        });
       } else {
-        // Mise à jour du state local en attendant l'intégration API réelle
-        console.log("Availability updated:", data);
+        throw new Error("Profil non trouvé");
       }
     } catch (error) {
       console.error("Error updating availability:", error);
@@ -412,9 +338,26 @@ export default function CandidateDashboard({
     }
   };
 
+  // Calculer la complétude du profil
+  const calculateProfileCompleteness = (): number => {
+    let completeness = 0;
+    if (candidate.name) completeness += 15;
+    if (candidate.email) completeness += 10;
+    if (candidate.phone) completeness += 10;
+    if (candidate.location) completeness += 10;
+    if (candidate.bio) completeness += 15;
+    if ((candidate as any).hourlyRate) completeness += 10;
+    if (candidate.skills && candidate.skills.length > 0) completeness += 15;
+    if ((candidate as any).certifications && (candidate as any).certifications.length > 0) completeness += 10;
+    if (candidate.experience && candidate.experience.length > 0) completeness += 15;
+    return Math.min(completeness, 100);
+  };
+
+  const profileCompleteness = calculateProfileCompleteness();
+
   // Count pending job matches and notifications
   const pendingJobsCount = mockJobMatches.filter(job => job.status === 'pending').length;
-  const notificationsCount = useRealData ? newNotifications.length : 0;
+  const notificationsCount = pendingJobsCount;
 
   // Navigation functions - use Next.js router to navigate to proper pages instead of state
   const goToEditProfile = () => {
@@ -463,306 +406,299 @@ export default function CandidateDashboard({
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Tableau de bord</h2>
-        <div className="flex items-center gap-2">
-          <Link href="/fr/dashboard/candidate/availability">
-            <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              <span>Disponibilité</span>
-            </Button>
-          </Link>
-          <Link href="/fr/dashboard/candidate/notifications">
-            <Button variant="outline" size="sm" className="hidden sm:flex items-center gap-1">
-              <Bell className="h-4 w-4" />
-              <span>Notifications</span>
-            </Button>
-          </Link>
-          <div className="hidden sm:block">
-            <NotificationCenter />
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Profile Card - Left column on larger screens */}
-        <div className="md:col-span-1">
-          <CandidateProfileCard 
-            candidate={candidate}
-            onEditProfile={goToEditProfile}
-            onUploadDocuments={goToUploadDocuments}
-          />
-          
-          <div className="mt-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" />
-                  Disponibilité
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AvailabilityUpdateForm 
-                  initialAvailable={candidate.isAvailable}
-                  initialStartDate={candidate.availability?.startDate || null}
-                  initialEndDate={candidate.availability?.endDate || null}
-                  onUpdate={handleUpdateAvailability}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Dashboard Info - Right column on larger screens */}
-        <div className="md:col-span-2 space-y-4">
-          {/* Stats */}
-          <CandidateStats 
-            stats={{
-              totalJobMatches: mockJobMatches.length,
-              acceptedJobs: mockJobMatches.filter(job => job.status === 'accepted').length,
-              completedMissions: mockJobMatches.filter(job => job.status === 'completed').length,
-              avgResponseTime: 45, // en minutes
-              daysAvailable: candidate.availability?.endDate ? 
-                Math.ceil((candidate.availability.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0,
-              averageRating: candidate.rating
-            }}
-          />
-
-          {/* Job matches preview */}
-          <Card>
-            <CardHeader className="pb-1">
-              <CardTitle className="text-lg flex items-center">
-                <BriefcaseIcon className="h-5 w-5 mr-2 text-primary" />
-                Offres Correspondantes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3">
-              <JobMatches 
-                matches={mockJobMatches.slice(0, 2) as any} 
-                onAcceptJob={handleAcceptJob}
-                onRejectJob={handleRejectJob}
-              />
-              
-              {mockJobMatches.length > 2 && (
-                <div className="mt-3 text-center">              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={goToAllJobs}
-              >
-                Voir toutes les offres ({mockJobMatches.length})
-              </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Tabs section - Full width */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="profile">
-            <UserIcon className="h-4 w-4 mr-2" />
-            Profil
-          </TabsTrigger>
-          <TabsTrigger value="jobs">
-            <BriefcaseIcon className="h-4 w-4 mr-2" />
-            Offres
-            {pendingJobsCount > 0 && (
-              <span className="ml-2 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                {pendingJobsCount}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="documents">
-            <FileTextIcon className="h-4 w-4 mr-2" />
-            Documents
-          </TabsTrigger>
-          <TabsTrigger value="reviews">
-            <Star className="h-4 w-4 mr-2" />
-            Évaluations
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="profile" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center">
-                <UserIcon className="h-5 w-5 mr-2 text-primary" />
-                Informations Personnelles
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Nom</p>
-                  <p>{candidate.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Email</p>
-                  <p>{candidate.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Téléphone</p>
-                  <p>{candidate.phone}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Localisation</p>
-                  <p>{candidate.location}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Taux horaire</p>
-                  <p>{(candidate as any).hourlyRate || "Non spécifié"} MAD/h</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Statut</p>
-                  <p>{candidate.isAvailable ? "Disponible" : "Non disponible"}</p>
-                </div>
+    <div className="w-full max-w-7xl mx-auto px-4 py-4 space-y-6">
+      {/* Header avec actions rapides */}
+      <AnimationWrapper direction="up" duration={0.6}>
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-6 border">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <UserIcon className="h-6 w-6 text-primary" />
               </div>
-
-              {candidate.bio && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">À propos</p>
-                  <p className="text-sm mt-1">{candidate.bio}</p>
-                </div>
-              )}
-
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Compétences</p>
-                <div className="flex flex-wrap gap-1">
-                  {candidate.skills?.map((skill: string, i: number) => (
-                    <Badge key={i} variant="secondary">{skill}</Badge>
-                  ))}
+                <h1 className="text-2xl font-bold text-gray-900">Bonjour, {candidate.name.split(' ')[0]} 👋</h1>
+                <div className="text-gray-600 flex items-center gap-2">
+                  <span className={`inline-block w-2 h-2 rounded-full ${candidate.isAvailable ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  {candidate.isAvailable ? 'Disponible pour missions' : 'Indisponible'}
+                  {notificationsCount > 0 && (
+                    <Badge variant="destructive" className="ml-2">{notificationsCount} nouvelle(s)</Badge>
+                  )}
                 </div>
               </div>
-
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Certifications</p>
-                <div className="flex flex-wrap gap-1">
-                  {(candidate as any).certifications?.map((cert: string, i: number) => (
-                    <Badge key={i} variant="outline">{cert}</Badge>
-                  ))}
+            </div>
+            
+              {/* Actions rapides & Navigation mobile */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Navigation mobile - menu burger simple */}
+                <div className="md:hidden">
+                  <Button variant="outline" size="sm" onClick={goToEditProfile}>
+                    <UserIcon className="h-4 w-4 mr-1" />
+                    Profil
+                  </Button>
+                  {pendingJobsCount > 0 && (
+                    <Button size="sm" onClick={goToAllJobs} className="ml-2">
+                      <BriefcaseIcon className="h-4 w-4 mr-1" />
+                      {pendingJobsCount}
+                    </Button>
+                  )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {candidate.experience && candidate.experience.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <BriefcaseIcon className="h-5 w-5 mr-2 text-primary" />
-                  Expérience Professionnelle
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {candidate.experience.map((exp: any, index: number) => (
-                    <div key={exp.id} className="border-l-2 border-muted pl-4 pb-2 relative">
-                      {/* Timeline dot */}
-                      <div className="absolute w-3 h-3 bg-primary rounded-full -left-[7px] top-1.5" />
-                      
-                      <h4 className="font-medium">{exp.title}</h4>
-                      <p className="text-sm text-muted-foreground">{exp.company}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(exp.startDate).toLocaleDateString('fr-FR', { 
-                          year: 'numeric', 
-                          month: 'long' 
-                        })} - {
-                          exp.isCurrent ? 'Présent' : 
-                          exp.endDate ? new Date(exp.endDate).toLocaleDateString('fr-FR', { 
-                            year: 'numeric', 
-                            month: 'long' 
-                          }) : ''
-                        }
-                      </p>
-                      {exp.description && (
-                        <p className="text-sm mt-2">{exp.description}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="jobs" className="mt-4">
-          <JobMatches 
-            matches={mockJobMatches as any}
-            onAcceptJob={handleAcceptJob}
-            onRejectJob={handleRejectJob}
-          />
-        </TabsContent>
-
-        <TabsContent value="documents" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center">
-                <FileTextIcon className="h-5 w-5 mr-2 text-primary" />
-                Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                variant="default" 
-                onClick={goToUploadDocuments}
-                className="mb-4"
-              >
-                Télécharger des Documents
-              </Button>
-
-              {mockDocuments.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileTextIcon className="h-12 w-12 text-muted-foreground/60 mx-auto mb-3" />
-                  <p className="text-muted-foreground">
-                    Aucun document téléchargé
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Veuillez télécharger vos certificats et permis
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {mockDocuments.map((doc: any) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-3 border rounded-md"
+                
+                {/* Actions essentielles uniquement - masquées sur mobile */}
+                <div className="hidden md:flex gap-2">
+                  {pendingJobsCount > 0 && (
+                    <Button 
+                      onClick={goToAllJobs}
+                      className="flex items-center gap-2"
                     >
-                      <div className="flex items-center">
-                        {doc.type.includes('pdf') ? (
-                          <FileTextIcon className="h-5 w-5 text-red-500 mr-3" />
-                        ) : (
-                          <FileTextIcon className="h-5 w-5 text-blue-500 mr-3" />
-                        )}
-                        <div>
-                          <p className="font-medium">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Ajouté le {new Date(doc.uploadedAt).toLocaleDateString('fr-FR')}
-                          </p>
-                        </div>
-                      </div>
-                      <Button size="sm" variant="outline" asChild>
-                        <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                          Voir
-                        </a>
-                      </Button>
-                    </div>
-                  ))}
+                      <BriefcaseIcon className="h-4 w-4" />
+                      {pendingJobsCount} offre(s) en attente
+                    </Button>
+                  )}
+                  <Link href="/fr/dashboard/candidate/availability">
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Disponibilité
+                    </Button>
+                  </Link>
                 </div>
-              )}
+              </div>
+          </div>
+        </div>
+      </AnimationWrapper>
+      
+      {/* Vue d'ensemble avec métriques clés */}
+      <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <FadeInCard delay={0}>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Offres en attente</p>
+                  <p className="text-2xl font-bold text-primary">{pendingJobsCount}</p>
+                </div>
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <BriefcaseIcon className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {pendingJobsCount > 0 ? 'Nécessitent votre attention' : 'Tout est à jour'}
+              </p>
             </CardContent>
           </Card>
-        </TabsContent>
+        </FadeInCard>
 
-        <TabsContent value="reviews" className="mt-4">
-          <CandidateReviews 
-            reviews={mockReviews}
-            references={mockReferences}
-          />
-        </TabsContent>
-      </Tabs>
+        <FadeInCard delay={0.1}>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Missions acceptées</p>
+                  <p className="text-2xl font-bold text-green-600">{mockJobMatches.filter(job => job.status === 'accepted').length}</p>
+                </div>
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckIcon className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Missions confirmées</p>
+            </CardContent>
+          </Card>
+        </FadeInCard>
+
+        <FadeInCard delay={0.2}>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Note moyenne</p>
+                  <p className="text-2xl font-bold text-yellow-600">{candidate.rating || 'N/A'}</p>
+                </div>
+                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <Star className="h-5 w-5 text-yellow-600" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {candidate.rating ? 'Excellent travail !' : 'Pas encore évalué'}
+              </p>
+            </CardContent>
+          </Card>
+        </FadeInCard>
+
+        <FadeInCard delay={0.3}>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Statut</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {candidate.isAvailable ? 'Disponible' : 'Indisponible'}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-purple-600" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {candidate.isAvailable ? 'Prêt pour missions' : 'Non disponible'}
+              </p>
+            </CardContent>
+          </Card>
+        </FadeInCard>
+      </StaggerContainer>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Section principale */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Actions rapides supprimées - redondantes avec header et sidebar */}
+
+          {/* Métriques simplifiées - informations redondantes supprimées */}
+
+          {/* Offres d'emploi prioritaires avec design amélioré */}
+          <SlideIn direction="left" delay={0.5}>
+            <Card className="shadow-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BriefcaseIcon className="h-5 w-5 text-primary" />
+                    Offres Prioritaires
+                    {pendingJobsCount > 0 && (
+                      <Badge variant="destructive" className="ml-2">
+                        {pendingJobsCount} urgent{pendingJobsCount > 1 ? 's' : ''}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={goToAllJobs}
+                    className="text-primary hover:text-primary/80"
+                  >
+                    Voir tout ({mockJobMatches.length})
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {mockJobMatches.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <BriefcaseIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p className="font-medium">Aucune offre disponible</p>
+                    <p className="text-sm">Nous vous notifierons dès qu'une offre correspond à votre profil</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={goToEditProfile}
+                      className="mt-3"
+                    >
+                      Améliorer mon profil
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <JobMatches 
+                      matches={mockJobMatches.slice(0, 3) as any} 
+                      onAcceptJob={handleAcceptJob}
+                      onRejectJob={handleRejectJob}
+                    />
+                    {mockJobMatches.length > 3 && (
+                      <div className="text-center pt-2 border-t">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={goToAllJobs}
+                          className="w-full"
+                        >
+                          Voir toutes les offres
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </SlideIn>
+        </div>
+
+        {/* Sidebar droite */}
+        <div className="space-y-6">
+          <SlideIn direction="right" delay={0.3}>
+            {/* Profil candidat compact */}
+            <Card className="shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                    {candidate.name.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{candidate.name}</h3>
+                    <p className="text-sm text-gray-600">{candidate.location}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Taux horaire</span>
+                    <span className="font-semibold">{(candidate as any).hourlyRate || 'Non spécifié'} MAD/h</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Statut</span>
+                    <Badge variant={candidate.isAvailable ? "default" : "secondary"}>
+                      {candidate.isAvailable ? "Disponible" : "Indisponible"}
+                    </Badge>
+                  </div>
+
+                  {candidate.rating && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Note</span>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="font-semibold">{candidate.rating}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-xs text-gray-600 mb-2">Compétences principales</p>
+                  <div className="flex flex-wrap gap-1">
+                    {candidate.skills?.slice(0, 3).map((skill: string, i: number) => (
+                      <Badge key={i} variant="outline" className="text-xs">{skill}</Badge>
+                    ))}
+                    {candidate.skills && candidate.skills.length > 3 && (
+                      <Badge variant="outline" className="text-xs">+{candidate.skills.length - 3}</Badge>
+                    )}
+                  </div>
+                </div>
+
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full mt-4"
+                  onClick={goToEditProfile}
+                >
+                  Modifier
+                </Button>
+              </CardContent>
+            </Card>
+          </SlideIn>
+
+          {/* Gestion disponibilité supprimée - redondante avec header et métriques */}
+
+          <SlideIn direction="right" delay={0.5}>
+            {/* Notifications intelligentes */}
+            <SmartNotifications
+              pendingJobsCount={pendingJobsCount}
+              profileCompleteness={profileCompleteness}
+              documentsCount={mockDocuments.length}
+              onViewJobs={goToAllJobs}
+              onEditProfile={goToEditProfile}
+              onUploadDocuments={goToUploadDocuments}
+            />
+          </SlideIn>
+        </div>
+      </div>
+
+      {/* Section onglets supprimée - ces détails sont maintenant sur des pages dédiées */}
+      {/* Navigation vers pages spécialisées via sidebar et header */}
     </div>
   );
 }

@@ -6,8 +6,7 @@ import { Star, ThumbsUp, Quote, User, MapPin, Calendar, Clock, MessageCircle } f
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { ClientOnlyDateFormat } from "@/components/ui/ClientOnlyDateFormat";
 
 interface Review {
   id: string;
@@ -138,7 +137,7 @@ export function CandidateReviews({
                           ))}
                         </div>
                         <div className="text-xs text-muted-foreground text-right mt-1">
-                          {format(review.date, "d MMMM yyyy", { locale: fr })}
+                          <ClientOnlyDateFormat date={review.date} formatString="d MMMM yyyy" />
                         </div>
                       </div>
                     </div>

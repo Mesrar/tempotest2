@@ -38,32 +38,40 @@ export const signUpAction = async (formData: FormData) => {
 
   if (user) {
     try {
+      // Créer le profil candidat manuellement puisque le trigger n'est pas encore configuré
+      if (userRole === 'candidate' || userRole === 'worker' || userRole === 'staff') {
+        console.log('🔄 Création manuelle du profil candidat pour:', user.id);
+        
+        const { data: profile, error: profileError } = await supabase
+          .from('candidate_profiles')
+          .insert({
+            user_id: user.id,
+            full_name: fullName,
+            email: email,
+            is_available: true,
+            skills: [],
+            rating: 0
+          })
+          .select()
+          .single();
 
-      const { error: updateError } = await supabase
-        .from('users')
-        .insert({
-          id: user.id,
-          user_id: user.id,
-          name: fullName,
-          email: email,
-          token_identifier: user.id,
-          created_at: new Date().toISOString()
-        });
-
-      if (updateError) {
-        // Error handling without console.error
-        return encodedRedirect(
-          "error",
-          `/${locale}/sign-up`,
-          "Error updating user. Please try again.",
-        );
+        if (profileError) {
+          console.error('❌ Erreur création profil candidat:', profileError);
+          return encodedRedirect(
+            "error",
+            `/${locale}/sign-up`,
+            "Error creating user profile. Please try again.",
+          );
+        }
+        
+        console.log('✅ Profil candidat créé:', profile.id);
       }
     } catch (err) {
-      // Error handling without console.error
+      console.error('❌ Erreur création profil:', err);
       return encodedRedirect(
         "error",
         `/${locale}/sign-up`,
-        "Error updating user. Please try again.",
+        "Error creating user profile. Please try again.",
       );
     }
   }

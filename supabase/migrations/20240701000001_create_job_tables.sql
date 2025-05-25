@@ -1,7 +1,7 @@
 -- Create job_postings table
 CREATE TABLE IF NOT EXISTS job_postings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  company_id UUID REFERENCES users(id) NOT NULL,
+  company_id UUID REFERENCES auth.users(id) NOT NULL,
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   location VARCHAR(255) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS job_postings (
 CREATE TABLE IF NOT EXISTS job_candidates (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   job_id UUID REFERENCES job_postings(id) NOT NULL,
-  candidate_id UUID REFERENCES users(id) NOT NULL,
+  candidate_id UUID REFERENCES auth.users(id) NOT NULL,
   match_score DECIMAL(5, 2) NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'matched',
   shortlisted BOOLEAN DEFAULT FALSE,
@@ -39,8 +39,8 @@ CREATE TABLE IF NOT EXISTS job_candidates (
 CREATE TABLE IF NOT EXISTS job_payments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   job_id UUID REFERENCES job_postings(id) NOT NULL,
-  company_id UUID REFERENCES users(id) NOT NULL,
-  candidate_id UUID REFERENCES users(id) NOT NULL,
+  company_id UUID REFERENCES auth.users(id) NOT NULL,
+  candidate_id UUID REFERENCES auth.users(id) NOT NULL,
   amount DECIMAL(10, 2) NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'pending',
   payment_method VARCHAR(50),

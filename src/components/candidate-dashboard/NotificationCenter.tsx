@@ -12,14 +12,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bell, BellOff, X, Clock, Info } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { ClientOnlyDateFormat } from "@/components/ui/ClientOnlyDateFormat";
+import { ClientOnlyTimeAgo } from "@/components/ui/ClientOnlyTimeAgo";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { AnimationWrapper, StaggerContainer, FadeInCard } from "./AnimationWrapper";
 
 interface Notification {
   id: string;
@@ -115,17 +116,8 @@ export function NotificationCenter({
   };
 
   const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
-    
-    if (diffInMinutes < 60) {
-      return `Il y a ${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''}`;
-    } else if (diffInMinutes < 1440) {
-      const hours = Math.floor(diffInMinutes / 60);
-      return `Il y a ${hours} heure${hours > 1 ? 's' : ''}`;
-    } else {
-      return format(date, "d MMMM", { locale: fr });
-    }
+    // Cette fonction n'est plus utilisée, remplacée par ClientOnlyTimeAgo
+    return "";
   };
 
   return (
@@ -163,40 +155,43 @@ export function NotificationCenter({
           </CardHeader>
           <CardContent className="p-0 max-h-[300px] overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 px-4">
-                <BellOff className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground text-center">
-                  Vous n'avez pas de notifications
-                </p>
-              </div>
+              <FadeInCard>
+                <div className="flex flex-col items-center justify-center py-8 px-4">
+                  <BellOff className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    Vous n'avez pas de notifications
+                  </p>
+                </div>
+              </FadeInCard>
             ) : (
-              <div>
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={cn(
-                      "flex items-start gap-3 px-4 py-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/30 transition-colors",
-                      !notification.isRead && "bg-primary/5"
-                    )}
-                    onClick={() => handleMarkAsRead(notification.id)}
-                  >
-                    <div className="mt-1">{getNotificationIcon(notification.type)}</div>
-                    <div className="flex-1 space-y-1">
-                      <div className="flex justify-between items-start">
-                        <p className="text-sm font-medium leading-none">
-                          {notification.title}
+              <StaggerContainer>
+                {notifications.map((notification, index) => (
+                  <FadeInCard key={notification.id} delay={index * 0.05}>
+                    <div
+                      className={cn(
+                        "flex items-start gap-3 px-4 py-3 border-b last:border-b-0 cursor-pointer hover:bg-muted/30 transition-colors",
+                        !notification.isRead && "bg-primary/5"
+                      )}
+                      onClick={() => handleMarkAsRead(notification.id)}
+                    >
+                      <div className="mt-1">{getNotificationIcon(notification.type)}</div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex justify-between items-start">
+                          <p className="text-sm font-medium leading-none">
+                            {notification.title}
+                          </p>
+                          <span className="text-xs text-muted-foreground">
+                            <ClientOnlyTimeAgo date={notification.createdAt} />
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {notification.message}
                         </p>
-                        <span className="text-xs text-muted-foreground">
-                          {formatTimeAgo(notification.createdAt)}
-                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {notification.message}
-                      </p>
                     </div>
-                  </div>
+                  </FadeInCard>
                 ))}
-              </div>
+              </StaggerContainer>
             )}
           </CardContent>
           <CardFooter className="p-2 border-t">

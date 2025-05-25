@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPinIcon, CalendarIcon, BriefcaseIcon, Clock, CheckIcon, XIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { ClientOnlyDateFormat } from "@/components/ui/ClientOnlyDateFormat";
 
 interface JobMatch {
   id: string;
@@ -147,8 +146,13 @@ export function JobMatches({
               <div className="flex items-center">
                 <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span>
-                  Du {format(job.startDate, "d MMM yyyy", { locale: fr })}
-                  {job.endDate && ` au ${format(job.endDate, "d MMM yyyy", { locale: fr })}`}
+                  Du <ClientOnlyDateFormat date={job.startDate} />
+                  {job.endDate && (
+                    <>
+                      {" au "}
+                      <ClientOnlyDateFormat date={job.endDate} />
+                    </>
+                  )}
                 </span>
               </div>
             </div>

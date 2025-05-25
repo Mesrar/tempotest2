@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useSupabase } from "@/context/supabase-provider";
 import { User } from "@supabase/supabase-js";
 
 export interface StaffProfile {
@@ -16,6 +16,7 @@ export interface StaffProfile {
   is_available: boolean;
   availability_start: string | null;
   availability_end: string | null;
+  hourly_rate: number | null;
   rating: number | null;
   created_at: string;
   updated_at: string;
@@ -24,7 +25,7 @@ export interface StaffProfile {
 
 export interface ExperienceEntry {
   id: string;
-  staff_id: string;
+  candidate_id: string;
   title: string;
   company: string;
   start_date: string;
@@ -35,20 +36,21 @@ export interface ExperienceEntry {
 
 export interface DocumentEntry {
   id: string;
-  staff_id: string;
+  candidate_id: string;
   name: string;
-  type: string;
-  url: string;
+  file_type: string;
   file_path: string;
+  file_size: number;
   status: string;
-  created_at: string;
-  expires_at: string | null;
+  upload_date: string;
+  notes: string | null;
+  public_url: string | null;
 }
 
 export interface JobMatch {
   id: string;
   job_id: string;
-  staff_id: string;
+  candidate_id: string;
   status: string;
   job: {
     id: string;
@@ -80,38 +82,54 @@ export function useCurrentStaff(): UseCurrentStaffResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const supabase = createClientComponentClient();
+  const supabase = useSupabase();
 
   useEffect(() => {
     async function loadStaffData() {
       try {
         setLoading(true);
+        setError(null);
         
-        // Obtenir l'utilisateur courant
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        // Vérifier l'état d'authentification d'abord
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (userError) throw userError;
-        if (!user) return;
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          throw sessionError;
+        }
         
+        if (!session?.user) {
+          // Pas d'utilisateur connecté, c'est normal
+          setUser(null);
+          setProfile(null);
+          setExperiences([]);
+          setDocuments([]);
+          setJobMatches([]);
+          return;
+        }
+        
+        const user = session.user;
         setUser(user);
         
         // Charger le profil du staff
-        const { data: profileData, error: profileError } = await supabase
-          .from('staff_profiles')
+        const { data: profileDataArray, error: profileError } = await supabase
+          .from('candidate_profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .limit(1);
         
-        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+        if (profileError) throw profileError;
+        
+        const profileData = profileDataArray && profileDataArray.length > 0 ? profileDataArray[0] : null;
         
         if (profileData) {
           setProfile(profileData);
           
           // Charger les expériences
           const { data: experiencesData, error: experiencesError } = await supabase
-            .from('staff_experience')
+            .from('candidate_experiences')
             .select('*')
-            .eq('staff_id', profileData.id)
+            .eq('candidate_id', profileData.id)
             .order('start_date', { ascending: false });
           
           if (experiencesError) throw experiencesError;
@@ -119,9 +137,9 @@ export function useCurrentStaff(): UseCurrentStaffResult {
           
           // Charger les documents
           const { data: documentsData, error: documentsError } = await supabase
-            .from('staff_documents')
+            .from('candidate_documents')
             .select('*')
-            .eq('staff_id', profileData.id);
+            .eq('candidate_id', profileData.id);
           
           if (documentsError) throw documentsError;
           setDocuments(documentsData || []);
@@ -132,19 +150,19 @@ export function useCurrentStaff(): UseCurrentStaffResult {
             .select(`
               id, 
               job_id, 
-              staff_id, 
+              candidate_id, 
               status, 
-              job:job_postings (
+              job:job_offers (
                 id, 
                 title, 
-                company_name,
+                company_id,
                 location, 
                 hourly_rate,
                 start_date, 
                 end_date
               )
             `)
-            .eq('staff_id', profileData.id);
+            .eq('candidate_id', profileData.id);
           
           if (matchesError) throw matchesError;
           setJobMatches((matchesData || []) as unknown as JobMatch[]);
@@ -157,7 +175,34 @@ export function useCurrentStaff(): UseCurrentStaffResult {
       }
     }
 
+    // Charger les données initiales
     loadStaffData();
+    
+    // Écouter les changements d'authentification
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Recharger les données quand l'utilisateur se connecte
+          loadStaffData();
+        } else if (event === 'SIGNED_OUT') {
+          // Nettoyer les données quand l'utilisateur se déconnecte
+          setUser(null);
+          setProfile(null);
+          setExperiences([]);
+          setDocuments([]);
+          setJobMatches([]);
+          setError(null);
+          setLoading(false);
+        }
+      }
+    );
+    
+    // Cleanup function
+    return () => {
+      authSubscription.unsubscribe();
+    };
     
     // S'abonner aux changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {

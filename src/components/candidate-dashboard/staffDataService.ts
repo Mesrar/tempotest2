@@ -4,7 +4,27 @@ import { createBrowserClient } from "@supabase/ssr";
 import { CandidateFormData } from "./CandidateProfileForm";
 import { toast } from "@/components/ui/use-toast";
 
-// Fonction pour mapper les données Supabase aux props de composants
+// Instance singleton du client Supabase pour éviter les multiples instances
+let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null;
+
+// Fonction pour initialiser le client Supabase (singleton)
+const getSupabaseClient = () => {
+  if (!supabaseInstance) {
+    supabaseInstance = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      {
+        global: {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        }
+      }
+    );
+  }
+  return supabaseInstance;
+};
 export function mapSupabaseDataToComponentProps({ user, profile, experiences, documents, jobMatches }: any) {
   if (!profile) return null;
 
@@ -60,14 +80,6 @@ export function mapSupabaseDataToComponentProps({ user, profile, experiences, do
     })) || []
   };
 }
-
-// Fonction pour initialiser le client Supabase
-const getSupabaseClient = () => {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-  );
-};
 
 /**
  * Fonction pour mettre à jour le profil d'un candidat
@@ -397,3 +409,234 @@ export async function markAllNotificationsAsRead(userId: string) {
     return { success: false, error };
   }
 }
+
+/**
+ * Fonction pour ajouter une expérience
+ */
+export async function addExperience(userId: string, experienceData: {
+  title: string;
+  company: string;
+  start_date: string;
+  end_date?: string;
+  description: string;
+  is_current: boolean;
+}) {
+  const supabase = getSupabaseClient();
+  
+  try {
+    console.log("🔄 Adding experience for userId:", userId);
+    console.log("📝 Experience data:", experienceData);
+    
+    // First, get the candidate profile ID from the user ID
+    const { data: profile, error: profileError } = await supabase
+      .from('candidate_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+    
+    if (profileError) {
+      console.error("❌ Error finding profile for experience:", profileError);
+      throw profileError;
+    }
+    
+    if (!profile) {
+      console.error("❌ No profile found for user experience:", userId);
+      throw new Error("Profile not found for user");
+    }
+    
+    console.log("✅ Found profile for experience:", profile);
+    
+    const { data, error } = await supabase
+      .from('candidate_experiences')
+      .insert({
+        candidate_id: profile.id,
+        title: experienceData.title,
+        company: experienceData.company,
+        start_date: experienceData.start_date,
+        end_date: experienceData.end_date,
+        description: experienceData.description,
+        is_current: experienceData.is_current,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Experience insert error:", error);
+      throw error;
+    }
+    
+    console.log("✅ Experience added successfully:", data);
+    
+    toast({
+      title: "Expérience ajoutée",
+      description: "Votre expérience professionnelle a été ajoutée avec succès.",
+    });
+    
+    return { success: true, data, error: null };
+  } catch (error) {
+    console.error("❌ Error adding experience:", error);
+    toast({
+      title: "Erreur",
+      description: "Impossible d'ajouter l'expérience. Veuillez réessayer.",
+      variant: "destructive",
+    });
+    return { success: false, data: null, error };
+  }
+}
+
+/**
+ * Fonction pour mettre à jour une expérience
+ */
+export async function updateExperience(experienceId: string, experienceData: {
+  title: string;
+  company: string;
+  start_date: string;
+  end_date?: string;
+  description: string;
+  is_current: boolean;
+}) {
+  const supabase = getSupabaseClient();
+  
+  try {
+    const { data, error } = await supabase
+      .from('candidate_experiences')
+      .update({
+        title: experienceData.title,
+        company: experienceData.company,
+        start_date: experienceData.start_date,
+        end_date: experienceData.end_date,
+        description: experienceData.description,
+        is_current: experienceData.is_current,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', experienceId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    toast({
+      title: "Expérience mise à jour",
+      description: "Les informations de l'expérience ont été mises à jour.",
+    });
+    
+    return { success: true, data, error: null };
+  } catch (error) {
+    console.error("Error updating experience:", error);
+    toast({
+      title: "Erreur",
+      description: "Impossible de mettre à jour l'expérience. Veuillez réessayer.",
+      variant: "destructive",
+    });
+    return { success: false, data: null, error };
+  }
+}
+
+/**
+ * Fonction pour supprimer une expérience
+ */
+export async function deleteExperience(experienceId: string) {
+  const supabase = getSupabaseClient();
+  
+  try {
+    const { error } = await supabase
+      .from('candidate_experiences')
+      .delete()
+      .eq('id', experienceId);
+
+    if (error) throw error;
+    
+    toast({
+      title: "Expérience supprimée",
+      description: "L'expérience a été supprimée de votre profil.",
+    });
+    
+    return { success: true, error: null };
+  } catch (error) {
+    console.error("Error deleting experience:", error);
+    toast({
+      title: "Erreur",
+      description: "Impossible de supprimer l'expérience. Veuillez réessayer.",
+      variant: "destructive",
+    });
+    return { success: false, error };
+  }
+}
+
+/**
+ * Fonction pour mettre à jour le profil de base
+ */
+export async function updateProfile(userId: string, profileData: {
+  full_name: string;
+  phone: string;
+  location: string;
+  bio: string;
+  skills: string[];
+  hourly_rate: number | null;
+  is_available: boolean;
+  availability_start?: string;
+  availability_end?: string;
+}) {
+  const supabase = getSupabaseClient();
+  
+  try {
+    console.log("🔄 Updating profile for userId:", userId);
+    console.log("📝 Profile data:", profileData);
+    
+    // First check if the profile exists
+    const { data: existingProfile, error: selectError } = await supabase
+      .from('candidate_profiles')
+      .select('id, user_id')
+      .eq('user_id', userId)
+      .single();
+    
+    if (selectError) {
+      console.error("❌ Error finding profile:", selectError);
+      throw selectError;
+    }
+    
+    if (!existingProfile) {
+      console.error("❌ No profile found for user:", userId);
+      throw new Error("Profile not found for user");
+    }
+    
+    console.log("✅ Found existing profile:", existingProfile);
+    
+    const { data, error } = await supabase
+      .from('candidate_profiles')
+      .update({
+        ...profileData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+      .select();
+
+    if (error) {
+      console.error("❌ Update error:", error);
+      throw error;
+    }
+    
+    console.log("✅ Profile updated successfully:", data);
+    return { success: true, error: null, data };
+  } catch (error) {
+    console.error("❌ Error updating profile:", error);
+    return { success: false, error };
+  }
+}
+
+// Export all functions as a service object
+export const staffDataService = {
+  updateCandidateProfile,
+  updateAvailability,
+  acceptJobMatch,
+  rejectJobMatch,
+  uploadDocument,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  addExperience,
+  updateExperience,
+  deleteExperience,
+  updateProfile,
+  mapSupabaseDataToComponentProps
+};
