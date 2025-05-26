@@ -121,15 +121,65 @@ export function useCurrentStaff(): UseCurrentStaffResult {
         if (profileError) throw profileError;
         
         const profileData = profileDataArray && profileDataArray.length > 0 ? profileDataArray[0] : null;
+        let currentProfile = profileData;
         
         if (profileData) {
           setProfile(profileData);
-          
+        } else {
+          // Créer automatiquement le profil si l'utilisateur a le bon rôle
+          const userRole = user.user_metadata?.role;
+          if (userRole === 'staff' || userRole === 'candidate' || userRole === 'worker') {
+            try {
+              console.log('🔄 Création automatique du profil candidat pour:', user.id);
+              
+              const { data: newProfile, error: createError } = await supabase
+                .from('candidate_profiles')
+                .insert({
+                  user_id: user.id,
+                  full_name: user.user_metadata?.full_name || '',
+                  email: user.email || '',
+                  is_available: true,
+                  skills: [],
+                  rating: 0
+                })
+                .select()
+                .single();
+              
+              if (createError) {
+                if (createError.code === '23505') {
+                  // Profil créé entre temps, essayer de le récupérer à nouveau
+                  const { data: retryProfileArray } = await supabase
+                    .from('candidate_profiles')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .limit(1);
+                  
+                  if (retryProfileArray && retryProfileArray.length > 0) {
+                    currentProfile = retryProfileArray[0];
+                    setProfile(currentProfile);
+                  }
+                } else {
+                  console.error("Erreur création automatique du profil:", createError);
+                }
+              } else {
+                console.log('✅ Profil candidat créé automatiquement:', newProfile.id);
+                currentProfile = newProfile;
+                setProfile(newProfile);
+              }
+            } catch (createErr) {
+              console.error("Erreur lors de la création automatique du profil:", createErr);
+              // Continuer sans profil
+            }
+          }
+        }
+        
+        // Charger les données liées au profil seulement si un profil existe
+        if (currentProfile) {
           // Charger les expériences
           const { data: experiencesData, error: experiencesError } = await supabase
             .from('candidate_experiences')
             .select('*')
-            .eq('candidate_id', profileData.id)
+            .eq('candidate_id', currentProfile.id)
             .order('start_date', { ascending: false });
           
           if (experiencesError) throw experiencesError;
@@ -139,7 +189,7 @@ export function useCurrentStaff(): UseCurrentStaffResult {
           const { data: documentsData, error: documentsError } = await supabase
             .from('candidate_documents')
             .select('*')
-            .eq('candidate_id', profileData.id);
+            .eq('candidate_id', currentProfile.id);
           
           if (documentsError) throw documentsError;
           setDocuments(documentsData || []);
@@ -162,7 +212,7 @@ export function useCurrentStaff(): UseCurrentStaffResult {
                 end_date
               )
             `)
-            .eq('candidate_id', profileData.id);
+            .eq('candidate_id', currentProfile.id);
           
           if (matchesError) throw matchesError;
           setJobMatches((matchesData || []) as unknown as JobMatch[]);

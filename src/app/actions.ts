@@ -33,54 +33,128 @@ export const signUpAction = async (formData: FormData) => {
   });
 
   if (error) {
-    return encodedRedirect("error", `/${locale}/sign-up`, error.message);
+    // Gestion des erreurs spécifiques d'inscription
+    let errorMessage = error.message;
+    
+    if (error.message.includes('User already registered')) {
+      errorMessage = locale === 'fr' ? 
+        'Cet email est déjà utilisé. Essayez de vous connecter.' :
+        locale === 'ar' ?
+        'هذا البريد الإلكتروني مستخدم بالفعل. حاول تسجيل الدخول.' :
+        'This email is already registered. Try signing in.';
+    } else if (error.message.includes('Invalid email')) {
+      errorMessage = locale === 'fr' ? 
+        'Adresse email invalide.' :
+        locale === 'ar' ?
+        'عنوان بريد إلكتروني غير صالح.' :
+        'Invalid email address.';
+    } else if (error.message.includes('Password')) {
+      errorMessage = locale === 'fr' ? 
+        'Le mot de passe doit contenir au moins 6 caractères.' :
+        locale === 'ar' ?
+        'يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل.' :
+        'Password must be at least 6 characters long.';
+    }
+    
+    return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
   }
 
-  if (user) {
-    try {
-      // Créer le profil candidat manuellement puisque le trigger n'est pas encore configuré
-      if (userRole === 'candidate' || userRole === 'worker' || userRole === 'staff') {
-        console.log('🔄 Création manuelle du profil candidat pour:', user.id);
-        
-        const { data: profile, error: profileError } = await supabase
-          .from('candidate_profiles')
-          .insert({
-            user_id: user.id,
-            full_name: fullName,
-            email: email,
-            is_available: true,
-            skills: [],
-            rating: 0
-          })
-          .select()
-          .single();
+  // Vérifier que l'utilisateur a bien été créé
+  if (!user) {
+    return encodedRedirect(
+      "error", 
+      `/${locale}/sign-up`, 
+      locale === 'fr' ? 
+        'Erreur lors de la création du compte. Veuillez réessayer.' :
+        locale === 'ar' ?
+        'خطأ في إنشاء الحساب. يرجى المحاولة مرة أخرى.' :
+        'Error creating account. Please try again.'
+    );
+  }
 
-        if (profileError) {
-          console.error('❌ Erreur création profil candidat:', profileError);
-          return encodedRedirect(
-            "error",
-            `/${locale}/sign-up`,
-            "Error creating user profile. Please try again.",
-          );
-        }
+  // Créer le profil candidat si nécessaire - avec gestion améliorée des erreurs RLS
+  if (user && (userRole === 'candidate' || userRole === 'worker' || userRole === 'staff')) {
+    try {
+      console.log('🔄 Création du profil candidat pour:', user.id);
+      
+      // Attendre un court délai pour s'assurer que la session est établie
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Vérifier d'abord si le profil existe déjà
+      const { data: existingProfile } = await supabase
+        .from('candidate_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (existingProfile) {
+        console.log('✅ Profil candidat existe déjà:', existingProfile.id);
+      } else {
+        // Créer le profil candidat avec retry logic pour les erreurs RLS
+        let retryCount = 0;
+        const maxRetries = 3;
+        let profileCreated = false;
         
-        console.log('✅ Profil candidat créé:', profile.id);
+        while (retryCount < maxRetries && !profileCreated) {
+          try {
+            console.log(`🔄 Tentative de création profil (${retryCount + 1}/${maxRetries})`);
+            
+            // Utiliser un client administrateur pour contourner les politiques RLS temporairement
+            const adminSupabase = await createClient();
+            
+            const { data: profile, error: profileError } = await adminSupabase
+              .from('candidate_profiles')
+              .insert({
+                user_id: user.id,
+                full_name: fullName,
+                email: email,
+                is_available: true,
+                skills: [],
+                rating: 0
+              })
+              .select()
+              .single();
+
+            if (profileError) {
+              if (profileError.code === '42501' && retryCount < maxRetries - 1) {
+                // Erreur RLS, réessayer après un délai plus long
+                console.log(`⚠️ Erreur RLS (${profileError.code}), retry ${retryCount + 1}/${maxRetries}`);
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Délai progressif
+                continue;
+              } else if (profileError.code === '23505') {
+                // Profil déjà existant, ne pas considérer comme une erreur
+                console.log('✅ Profil candidat existe déjà (contrainte unique)');
+                profileCreated = true;
+                break;
+              }
+              throw profileError;
+            }
+            
+            console.log('✅ Profil candidat créé:', profile.id);
+            profileCreated = true;
+          } catch (retryError) {
+            retryCount++;
+            if (retryCount >= maxRetries) {
+              console.error('❌ Échec création profil après', maxRetries, 'tentatives');
+              // Ne pas bloquer l'inscription, l'utilisateur pourra créer son profil plus tard
+              console.log('⚠️ Inscription réussie mais profil non créé - sera créé à la première connexion');
+              break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          }
+        }
       }
     } catch (err) {
       console.error('❌ Erreur création profil:', err);
-      return encodedRedirect(
-        "error",
-        `/${locale}/sign-up`,
-        "Error creating user profile. Please try again.",
-      );
+      // Ne pas bloquer l'inscription si la création du profil échoue
+      // L'utilisateur pourra créer son profil lors de la première connexion
+      console.log('⚠️ Profil candidat non créé, mais inscription réussie');
     }
   }
 
-  return encodedRedirect(
-    "success",
-    `/${locale}/sign-up`,
-    "Thanks for signing up! Please check your email for a verification link.",
-  );
+  // Rediriger vers la page de confirmation d'email avec l'adresse email
+  return redirect(`/${locale}/email-confirmation?email=${encodeURIComponent(email)}`);
 };
 
 export const signInAction = async (formData: FormData) => {
