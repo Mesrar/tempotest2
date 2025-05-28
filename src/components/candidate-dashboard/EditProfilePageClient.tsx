@@ -10,10 +10,13 @@ import {
   addExperience, 
   updateExperience 
 } from "@/components/candidate-dashboard/staffDataService";
+import { uploadDocument, deleteDocument } from "@/lib/supabase/documents";
 import { Loader2, ArrowLeft, Save, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileEditForm } from "@/components/candidate-dashboard/ProfileEditForm";
+import { DocumentUpload } from "@/components/candidate-dashboard/DocumentUpload";
+import { mapSupabaseDataToComponentProps } from "@/components/candidate-dashboard/mappers";
 
 interface EditProfilePageClientProps {
   locale: Locale;
@@ -23,8 +26,9 @@ interface EditProfilePageClientProps {
 export function EditProfilePageClient({ locale, dict }: EditProfilePageClientProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   // Utiliser le hook Supabase réel
-  const { user, profile, experiences, loading, error } = useCurrentStaff();
+  const { user, profile, experiences, documents: supabaseDocuments, loading, error } = useCurrentStaff();
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Redirect to login if not authenticated
@@ -94,8 +98,11 @@ export function EditProfilePageClient({ locale, dict }: EditProfilePageClientPro
 
     setIsSubmitting(true);
     try {
+      console.log("🔄 Starting profile update for user:", user.id);
+      console.log("📝 Form data received:", data);
+      
       // Update profile with Supabase
-      await updateProfile(user.id, {
+      const profileResult = await updateProfile(user.id, {
         full_name: data.fullName,
         phone: data.phone,
         location: data.location,
@@ -106,32 +113,55 @@ export function EditProfilePageClient({ locale, dict }: EditProfilePageClientPro
         availability_start: data.availabilityStart?.toISOString(),
         availability_end: data.availabilityEnd?.toISOString(),
       });
+      
+      if (!profileResult.success) {
+        throw new Error(`Profile update failed: ${JSON.stringify(profileResult.error)}`);
+      }
 
       // Update experiences if provided
       if (data.experiences && data.experiences.length > 0) {
+        console.log("🔄 Processing experiences:", data.experiences);
+        
         for (const exp of data.experiences) {
+          const startDate = typeof exp.startDate === 'string' ? exp.startDate : exp.startDate.toISOString().split('T')[0];
+          const endDate = exp.endDate ? (typeof exp.endDate === 'string' ? exp.endDate : exp.endDate.toISOString().split('T')[0]) : undefined;
+          
+          console.log(`📝 Processing experience: ${exp.title} at ${exp.company}`);
+          
           if (exp.id) {
             // Update existing experience
-            await updateExperience(exp.id, {
+            console.log("🔄 Updating existing experience:", exp.id);
+            const expResult = await updateExperience(exp.id, {
               title: exp.title,
               company: exp.company,
-              start_date: exp.startDate,
-              end_date: exp.endDate,
+              start_date: startDate,
+              end_date: endDate,
               description: exp.description,
               is_current: exp.isCurrent
             });
+            console.log("✅ Experience update result:", expResult);
+            if (!expResult.success) {
+              throw new Error(`Experience update failed: ${JSON.stringify(expResult.error)}`);
+            }
           } else {
             // Create new experience
-            await addExperience(user.id, {
+            console.log("🔄 Creating new experience");
+            const expResult = await addExperience(user.id, {
               title: exp.title,
               company: exp.company,
-              start_date: exp.startDate,
-              end_date: exp.endDate,
+              start_date: startDate,
+              end_date: endDate,
               description: exp.description,
               is_current: exp.isCurrent
             });
+            console.log("✅ Experience creation result:", expResult);
+            if (!expResult.success) {
+              throw new Error(`Experience creation failed: ${JSON.stringify(expResult.error)}`);
+            }
           }
         }
+      } else {
+        console.log("ℹ️ No experiences to process");
       }
 
       // Force refresh by incrementing the refresh key
@@ -160,6 +190,86 @@ export function EditProfilePageClient({ locale, dict }: EditProfilePageClientPro
 
   const handleCancel = () => {
     router.push(`/${locale}/dashboard/candidate`);
+  };
+
+  // Fonctions de gestion des documents
+  const handleUpload = async (files: File[]) => {
+    setIsUploading(true);
+    console.log("🚀 Début handleUpload:", {
+      filesCount: files.length,
+      hasProfile: !!profile,
+      hasUser: !!user,
+      profileId: profile?.id,
+      userId: user?.id,
+      userEmail: user?.email
+    });
+    
+    try {
+      if (!profile) {
+        throw new Error("Profil non trouvé");
+      }
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
+      }
+
+      const uploadPromises = files.map(file => 
+        uploadDocument(file, profile.id, user.id)
+      );
+      
+      await Promise.all(uploadPromises);
+      
+      toast({
+        title: "Documents téléchargés",
+        description: `${files.length} document(s) ont été téléchargés avec succès.`,
+      });
+      
+      // Actualiser les données pour afficher les nouveaux documents
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error("Error uploading documents:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors du téléchargement de vos documents.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (id: string) => {
+    try {
+      // Récupérer le chemin du fichier avant suppression
+      const documentToDelete = supabaseDocuments?.find(doc => doc.id === id);
+      
+      if (!documentToDelete) {
+        throw new Error("Document non trouvé");
+      }
+      
+      const { success, error } = await deleteDocument({
+        id,
+        filePath: documentToDelete.file_path
+      });
+      
+      if (!success) {
+        throw error;
+      }
+      
+      toast({
+        title: "Document supprimé",
+        description: "Le document a été supprimé avec succès.",
+      });
+      
+      // Actualiser les données pour refléter la suppression
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de la suppression du document.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -250,6 +360,16 @@ export function EditProfilePageClient({ locale, dict }: EditProfilePageClientPro
             availabilityEnd: profile?.availability_end ? new Date(profile.availability_end) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
           }}
           isSubmitting={isSubmitting}
+          documents={supabaseDocuments ? mapSupabaseDataToComponentProps({ 
+            user, 
+            profile, 
+            experiences, 
+            documents: supabaseDocuments, 
+            jobMatches: []
+          })?.documents || [] : []}
+          onUploadDocuments={handleUpload}
+          onDeleteDocument={handleDeleteDocument}
+          isUploading={isUploading}
         />
       </div>
     </main>

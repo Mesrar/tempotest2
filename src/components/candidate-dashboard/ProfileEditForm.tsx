@@ -21,7 +21,8 @@ import {
   Calendar,
   DollarSign,
   FileText,
-  Trash2
+  Trash2,
+  Upload
 } from "lucide-react";
 import { 
   Tabs, 
@@ -38,12 +39,18 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { DocumentUpload } from "./DocumentUpload";
 
 interface ProfileEditFormProps {
   onSubmit: (data: ProfileFormData) => void;
   onCancel: () => void;
   initialData?: Partial<ProfileFormData>;
   isSubmitting?: boolean;
+  // Props pour les documents
+  documents?: any[];
+  onUploadDocuments?: (files: File[]) => Promise<void>;
+  onDeleteDocument?: (id: string) => Promise<void>;
+  isUploading?: boolean;
 }
 
 export interface ProfileFormData {
@@ -74,7 +81,11 @@ export function ProfileEditForm({
   onSubmit,
   onCancel,
   initialData,
-  isSubmitting = false
+  isSubmitting = false,
+  documents = [],
+  onUploadDocuments,
+  onDeleteDocument,
+  isUploading = false
 }: ProfileEditFormProps) {
   const [skills, setSkills] = useState<string[]>(initialData?.skills || []);
   const [skillInput, setSkillInput] = useState("");
@@ -155,7 +166,7 @@ export function ProfileEditForm({
   return (
     <form id="profile-form" onSubmit={handleSubmit(onFormSubmit)} className="space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-gray-100">
+        <TabsList className="grid w-full grid-cols-4 bg-gray-100">
           <TabsTrigger value="personal" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Informations personnelles
@@ -167,6 +178,10 @@ export function ProfileEditForm({
           <TabsTrigger value="availability" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Disponibilité
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Documents
           </TabsTrigger>
         </TabsList>
 
@@ -453,7 +468,7 @@ export function ProfileEditForm({
                     <div className="space-y-2">
                       <Label htmlFor="hourlyRate" className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4" />
-                        Tarif horaire (€)
+                        Tarif horaire (MAD)
                       </Label>
                       <Input
                         id="hourlyRate"
@@ -461,7 +476,7 @@ export function ProfileEditForm({
                         step="0.5"
                         min="0"
                         {...register("hourlyRate")}
-                        placeholder="25.00"
+                        placeholder="65.00"
                       />
                       <p className="text-xs text-gray-600">
                         Tarif indicatif, négociable selon la mission
@@ -469,6 +484,32 @@ export function ProfileEditForm({
                     </div>
                   </div>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Documents Tab */}
+        <TabsContent value="documents" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5 text-blue-600" />
+                Documents et certifications
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Téléchargez vos certifications, permis et autres documents importants
+              </p>
+            </CardHeader>
+            <CardContent>
+              {onUploadDocuments && (
+                <DocumentUpload 
+                  onUpload={onUploadDocuments}
+                  onCancel={onCancel}
+                  isUploading={isUploading}
+                  existingDocuments={documents}
+                  onDeleteDocument={onDeleteDocument}
+                />
               )}
             </CardContent>
           </Card>

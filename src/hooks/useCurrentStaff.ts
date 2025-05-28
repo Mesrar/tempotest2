@@ -52,14 +52,21 @@ export interface JobMatch {
   job_id: string;
   candidate_id: string;
   status: string;
+  match_percentage?: number;
   job: {
     id: string;
     title: string;
-    company_name: string;
+    company_id: string;
     location: string;
     hourly_rate: number;
     start_date: string;
     end_date: string;
+    skills_required?: string[];
+    company?: {
+      id: string;
+      name: string;
+      logo_url?: string;
+    };
   };
 }
 
@@ -95,6 +102,10 @@ export function useCurrentStaff(): UseCurrentStaffResult {
         
         if (sessionError) {
           console.error('Session error:', sessionError);
+          // Distinguer les erreurs de session des autres erreurs
+          if (sessionError.message?.includes('JWT') || sessionError.message?.includes('expired')) {
+            throw new Error('Session expirée. Veuillez vous reconnecter.');
+          }
           throw sessionError;
         }
         
@@ -201,7 +212,8 @@ export function useCurrentStaff(): UseCurrentStaffResult {
               id, 
               job_id, 
               candidate_id, 
-              status, 
+              status,
+              match_percentage,
               job:job_offers (
                 id, 
                 title, 
@@ -209,10 +221,17 @@ export function useCurrentStaff(): UseCurrentStaffResult {
                 location, 
                 hourly_rate,
                 start_date, 
-                end_date
+                end_date,
+                skills_required,
+                company:companies (
+                  id,
+                  name,
+                  logo_url
+                )
               )
             `)
-            .eq('candidate_id', currentProfile.id);
+            .eq('candidate_id', currentProfile.id)
+            .order('created_at', { ascending: false });
           
           if (matchesError) throw matchesError;
           setJobMatches((matchesData || []) as unknown as JobMatch[]);
@@ -252,15 +271,6 @@ export function useCurrentStaff(): UseCurrentStaffResult {
     // Cleanup function
     return () => {
       authSubscription.unsubscribe();
-    };
-    
-    // S'abonner aux changements d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      loadStaffData();
-    });
-
-    return () => {
-      subscription.unsubscribe();
     };
   }, [supabase]);
 

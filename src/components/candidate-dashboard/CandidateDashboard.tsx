@@ -1,32 +1,39 @@
-"use client";
-
+"use client"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { 
+  UserIcon, 
+  BriefcaseIcon, 
+  CheckIcon, 
+  Star, 
+  Calendar,
+  Loader2,
+  MapPinIcon,
+  CalendarIcon,
+  FileTextIcon,
+  Bell,
+  Settings,
+  HistoryIcon
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 
 import { CandidateProfileForm, CandidateFormData } from "./CandidateProfileForm";
 import { JobMatches } from "./JobMatches";
 import { SmartNotifications } from "./SmartNotifications";
 import { AnimationWrapper, StaggerContainer, FadeInCard, SlideIn } from "./AnimationWrapper";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
-import { updateCandidateProfile, updateAvailability, acceptJobMatch, rejectJobMatch } from "./staffDataService";
-import {
-  BriefcaseIcon,
-  FileTextIcon,
-  UserIcon,
-  Star,
-  Calendar,
-  Bell,
-  Settings,
-  HistoryIcon,
-  Loader2,
-  CheckIcon
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "../ui/badge";
-import { toast } from "../ui/use-toast";
+import { 
+  updateCandidateProfile, 
+  updateAvailability,
+  acceptJobMatch,
+  rejectJobMatch
+} from "./staffDataService";
 
 // Mock data types - these would come from your API/database
 interface Candidate {
@@ -159,7 +166,7 @@ export default function CandidateDashboard({
     phone: profile.phone,
     location: profile.location,
     bio: profile.bio || undefined,
-    hourlyRate: undefined, // À ajouter au schéma si nécessaire
+    hourlyRate: profile.hourly_rate ? profile.hourly_rate.toString() : undefined,
     certifications: [], // À ajouter au schéma si nécessaire
     experience: experiences.map(exp => ({
       id: exp.id,
@@ -190,16 +197,16 @@ export default function CandidateDashboard({
         id: match.id,
         title: match.job.title,
         company: {
-          id: match.job.id,
-          name: match.job.company_name,
-          logoUrl: undefined // À ajouter au schéma si nécessaire
+          id: match.job.company?.id || match.job.company_id,
+          name: match.job.company?.name || "Entreprise non spécifiée",
+          logoUrl: match.job.company?.logo_url || undefined
         },
         location: match.job.location,
         startDate: new Date(match.job.start_date),
         endDate: match.job.end_date ? new Date(match.job.end_date) : undefined,
         salary: match.job.hourly_rate,
-        skills: [], // À ajouter au schéma des jobs si nécessaire
-        matchPercentage: 85, // Calculer selon votre logique
+        skills: match.job.skills_required || [],
+        matchPercentage: match.match_percentage || 85,
         status: match.status as 'pending' | 'accepted' | 'rejected' | 'completed'
       }))
     : (jobMatches.length > 0 ? jobMatches : []);
@@ -362,10 +369,6 @@ export default function CandidateDashboard({
   // Navigation functions - use Next.js router to navigate to proper pages instead of state
   const goToEditProfile = () => {
     router.push("/fr/dashboard/candidate/profile/edit");
-  };
-
-  const goToUploadDocuments = () => {
-    router.push("/fr/dashboard/candidate/documents/upload");
   };
 
   const goToAllJobs = () => {
@@ -691,7 +694,7 @@ export default function CandidateDashboard({
               documentsCount={mockDocuments.length}
               onViewJobs={goToAllJobs}
               onEditProfile={goToEditProfile}
-              onUploadDocuments={goToUploadDocuments}
+              onUploadDocuments={goToEditProfile} // Maintenant rediriger vers l'éditeur de profil avec l'onglet documents
             />
           </SlideIn>
         </div>

@@ -97,7 +97,7 @@ export async function updateCandidateProfile(candidateId: string, data: Candidat
         email: data.email,
         location: data.location,
         bio: data.bio,
-        hourly_rate: parseInt(data.hourlyRate),
+        hourly_rate: data.hourlyRate ? parseFloat(data.hourlyRate) : null,
         skills: data.skills,
         updated_at: new Date().toISOString()
       })
@@ -120,8 +120,12 @@ export async function updateCandidateProfile(candidateId: string, data: Candidat
         title: exp.title,
         company: exp.company,
         location: (exp as any).location || '',
-        start_date: exp.startDate.toISOString(),
-        end_date: exp.isCurrent ? null : (exp.endDate ? exp.endDate.toISOString() : null),
+        start_date: typeof exp.startDate === 'string' ? exp.startDate : exp.startDate.toISOString().split('T')[0],
+        end_date: exp.isCurrent ? null : (
+          exp.endDate ? (
+            typeof exp.endDate === 'string' ? exp.endDate : exp.endDate.toISOString().split('T')[0]
+          ) : null
+        ),
         is_current: exp.isCurrent,
         description: exp.description,
         created_at: new Date().toISOString()
@@ -499,6 +503,9 @@ export async function updateExperience(experienceId: string, experienceData: {
   const supabase = getSupabaseClient();
   
   try {
+    console.log("🔄 Updating experience with ID:", experienceId);
+    console.log("📝 Experience data:", experienceData);
+    
     const { data, error } = await supabase
       .from('candidate_experiences')
       .update({
@@ -507,14 +514,18 @@ export async function updateExperience(experienceId: string, experienceData: {
         start_date: experienceData.start_date,
         end_date: experienceData.end_date,
         description: experienceData.description,
-        is_current: experienceData.is_current,
-        updated_at: new Date().toISOString()
+        is_current: experienceData.is_current
       })
       .eq('id', experienceId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("❌ Experience update error:", error);
+      throw error;
+    }
+    
+    console.log("✅ Experience updated successfully:", data);
     
     toast({
       title: "Expérience mise à jour",

@@ -31,12 +31,61 @@ export function DocumentUploadPageClient({ locale, dict }: DocumentUploadPageCli
     jobMatches: []
   });
 
+  // Gestion des erreurs de session ou de chargement
+  if (error) {
+    console.error("Error loading staff data:", error);
+    
+    // Gestion spécifique des erreurs d'authentification
+    if (error.message?.includes("session") || error.message?.includes("JWT")) {
+      toast({
+        title: "Session expirée",
+        description: "Votre session a expiré. Veuillez vous reconnecter.",
+        variant: "destructive",
+      });
+      router.push(`/${locale}/auth/signin`);
+      return null;
+    }
+    
+    toast({
+      title: "Erreur de chargement",
+      description: "Impossible de charger vos données. Veuillez actualiser la page.",
+      variant: "destructive",
+    });
+    
+    return (
+      <main className="min-h-screen bg-muted/40 pb-10">
+        <div className="bg-background py-4 shadow-sm border-b mb-6">
+          <div className="container max-w-5xl mx-auto px-4">
+            <h1 className="text-2xl font-bold">{dict.dashboard?.uploadDocuments || "Télécharger des documents"}</h1>
+            <p className="text-muted-foreground text-red-600">
+              Erreur de chargement des données. Veuillez actualiser la page.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   // Afficher un état de chargement pendant la récupération des données
   if (loading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin h-8 w-8 text-primary" />
-      </div>
+      <main className="min-h-screen bg-muted/40 pb-10">
+        <div className="bg-background py-4 shadow-sm border-b mb-6">
+          <div className="container max-w-5xl mx-auto px-4">
+            <h1 className="text-2xl font-bold">{dict.dashboard?.uploadDocuments || "Télécharger des documents"}</h1>
+            <p className="text-muted-foreground">
+              Chargement de vos données...
+            </p>
+          </div>
+        </div>
+        
+        <div className="container max-w-3xl mx-auto px-4">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Chargement...</span>
+          </div>
+        </div>
+      </main>
     );
   }
 
@@ -53,20 +102,57 @@ export function DocumentUploadPageClient({ locale, dict }: DocumentUploadPageCli
 
   const handleUpload = async (files: File[]) => {
     setIsUploading(true);
+    console.log("🚀 Début handleUpload DocumentUpload:", {
+      filesCount: files.length,
+      hasProfile: !!profile,
+      hasUser: !!user,
+      profileId: profile?.id,
+      userId: user?.id,
+      userEmail: user?.email,
+      firstFileType: files[0]?.type,
+      firstFileSize: files[0]?.size,
+      firstFileName: files[0]?.name,
+      isFirstFileInstance: files[0] instanceof File
+    });
+    
     try {
       if (!profile) {
         throw new Error("Profil non trouvé");
       }
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
+      }
 
-      const uploadPromises = files.map(file => 
-        uploadDocument({
-          staffId: profile.id,
-          file,
+      // Vérifier que tous les fichiers sont valides avant de commencer l'upload
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        console.log("📄 Vérification fichier:", {
+          name: file.name,
           type: file.type,
-        })
-      );
+          size: file.size,
+          constructor: file.constructor.name,
+          isFile: file instanceof File,
+          isBlob: file instanceof Blob
+        });
+        
+        if (!(file instanceof File)) {
+          throw new Error(`Le fichier à l'index ${i} n'est pas valide.`);
+        }
+      }
+
+      const uploadPromises = files.map(async (file) => {
+        console.log(`🔄 Upload du fichier: ${file.name}`);
+        const result = await uploadDocument(file, profile.id, user.id);
+        if (!result.success) {
+          throw new Error(
+            result.error?.message || 
+            `Erreur lors du téléchargement de ${file.name}`
+          );
+        }
+        return result;
+      });
       
-      await Promise.all(uploadPromises);
+      const results = await Promise.all(uploadPromises);
       
       toast({
         title: "Documents téléchargés",
@@ -77,9 +163,39 @@ export function DocumentUploadPageClient({ locale, dict }: DocumentUploadPageCli
       router.push(`/${locale}/dashboard/candidate`);
     } catch (error) {
       console.error("Error uploading documents:", error);
+      
+      let errorMessage = "Une erreur s'est produite lors du téléchargement de vos documents.";
+      let errorTitle = "Erreur";
+      
+      if (error instanceof Error) {
+        const message = error.message;
+        
+        // Messages d'erreur spécifiques selon le type d'erreur
+        if (message.includes("session") || message.includes("authentification") || message.includes("connecté")) {
+          errorTitle = "Problème de connexion";
+          errorMessage = "Votre session a expiré. Veuillez vous reconnecter et réessayer.";
+          
+          // Rediriger vers la page de connexion après un délai
+          setTimeout(() => {
+            router.push(`/${locale}/auth/signin`);
+          }, 3000);
+        } else if (message.includes("autorisé")) {
+          errorTitle = "Accès refusé";
+          errorMessage = "Vous n'êtes pas autorisé à effectuer cette action.";
+        } else if (message.includes("stockage") || message.includes("storage")) {
+          errorTitle = "Erreur de téléchargement";
+          errorMessage = "Impossible de télécharger le fichier. Vérifiez la taille et le format du fichier.";
+        } else if (message.includes("base de données") || message.includes("database")) {
+          errorTitle = "Erreur de sauvegarde";
+          errorMessage = "Le fichier a été téléchargé mais n'a pas pu être enregistré. Contactez le support.";
+        } else {
+          errorMessage = message;
+        }
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Une erreur s'est produite lors du téléchargement de vos documents.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
