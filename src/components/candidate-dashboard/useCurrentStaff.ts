@@ -71,13 +71,56 @@ export function useCurrentStaff(): UseCurrentStaffResult {
         }
 
         if (!profileData) {
-          // Si aucun profil n'existe, on termine le chargement mais on continue
-          // pour permettre à l'utilisateur de créer son profil
+          // Créer automatiquement le profil si l'utilisateur a le bon rôle
+          const userRole = userData.user.user_metadata?.role;
+          if (userRole === 'staff' || userRole === 'candidate' || userRole === 'worker') {
+            try {
+              console.log('🔄 Création automatique du profil candidat pour:', userData.user.id);
+              
+              const { data: newProfile, error: createError } = await supabase
+                .from('candidate_profiles')
+                .insert({
+                  user_id: userData.user.id,
+                  full_name: userData.user.user_metadata?.full_name || '',
+                  email: userData.user.email || '',
+                  is_available: true,
+                  skills: [],
+                  rating: 0
+                })
+                .select()
+                .single();
+              
+              if (createError) {
+                if (createError.code === '23505') {
+                  // Profil créé entre temps, essayer de le récupérer à nouveau
+                  const { data: retryProfile } = await supabase
+                    .from('candidate_profiles')
+                    .select('*')
+                    .eq('user_id', userData.user.id)
+                    .single();
+                  
+                  if (retryProfile) {
+                    setProfile(retryProfile as CandidateProfile);
+                  }
+                } else {
+                  console.error("Erreur création automatique du profil:", createError);
+                }
+              } else {
+                console.log('✅ Profil candidat créé automatiquement:', newProfile.id);
+                setProfile(newProfile as CandidateProfile);
+              }
+            } catch (createErr) {
+              console.error("Erreur lors de la création automatique du profil:", createErr);
+              // Continuer sans profil, l'utilisateur pourra le créer manuellement
+            }
+          }
+          
+          // Si aucun profil n'existe et pas créé automatiquement, on termine le chargement
           setLoading(false);
           return;
+        } else {
+          setProfile(profileData as CandidateProfile);
         }
-
-        setProfile(profileData as CandidateProfile);
 
         // 3. Récupérer les expériences
         const { data: experiencesData, error: experiencesError } = await supabase

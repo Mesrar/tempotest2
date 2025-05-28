@@ -34,11 +34,12 @@ export function mapSupabaseDataToComponentProps({ user, profile, experiences, do
     documents: documents?.map((doc: any) => ({
       id: doc.id,
       name: doc.name,
-      type: doc.type,
-      url: doc.url,
+      type: doc.file_type || doc.type, // Support des deux formats
+      url: doc.public_url || doc.url,
       filePath: doc.file_path,
       status: doc.status,
-      createdAt: new Date(doc.created_at),
+      uploadedAt: doc.created_at ? new Date(doc.created_at) : new Date(),
+      createdAt: new Date(doc.created_at || Date.now()),
       expiresAt: doc.expires_at ? new Date(doc.expires_at) : null
     })) || [],
     jobMatches: jobMatches?.map((match: any) => ({

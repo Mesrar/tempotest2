@@ -1,9 +1,85 @@
-"use server";
+  // Créer le profil candidat si nécessaire - utilise la fonction de service RLS
+  if (user && (userRole === 'candidate' || userRole === 'worker' || userRole === 'staff')) {
+    try {
+      console.log('🔄 Création du profil candidat pour:', user.id);
+      
+      // Attendre un peu pour que l'utilisateur soit bien créé dans auth.users
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Utiliser la fonction de service pour contourner les problèmes RLS
+      const { data: profileId, error: serviceError } = await supabase
+        .rpc('create_candidate_profile_service', {
+          p_user_id: user.id,
+          p_full_name: fullName || email,
+          p_email: email
+        });
+
+      if (serviceError) {
+        console.error('❌ Erreur fonction de service:', serviceError);
+        
+        // Si erreur 23503 (FK) ou 42883 (fonction n'existe pas), essayer la méthode directe
+        if (serviceError.code === '23503' || serviceError.code === '42883' || serviceError.code === '42501') {
+          console.log('⚠️ Fallback: création directe du profil après correction des dépendances');
+          
+          // D'abord créer l'entrée dans users si nécessaire
+          try {
+            await supabase
+              .from('users')
+              .upsert({
+                id: user.id,
+                user_id: user.id,
+                email: email,
+                name: fullName || email,
+                full_name: fullName || email,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'id' });
+            
+            console.log('✅ Entrée users créée/mise à jour');
+          } catch (userError) {
+            console.log('⚠️ Erreur création users (peut-être déjà existe):', userError);
+          }
+          
+          // Puis créer le profil candidat
+          const { data: profile, error: directError } = await supabase
+            .from('candidate_profiles')
+            .upsert({
+              user_id: user.id,
+              full_name: fullName || email,
+              email: email,
+              is_available: true,
+              skills: [],
+              rating: 0
+            }, { onConflict: 'user_id' })
+            .select()
+            .single();
+
+          if (directError) {
+            if (directError.code === '23505' || directError.code === '23503') {
+              console.log('✅ Profil candidat existe déjà ou créé via contrainte');
+            } else {
+              throw directError;
+            }
+          } else {
+            console.log('✅ Profil candidat créé (méthode directe):', profile.id);
+          }
+        } else {
+          throw serviceError;
+        }
+      } else {
+        console.log('✅ Profil candidat créé via fonction de service:', profileId);
+      }
+    } catch (err) {
+      console.error('❌ Erreur création profil:', err);
+      // Ne pas bloquer l'inscription si la création du profil échoue
+      // L'utilisateur pourra créer son profil lors de la première connexion
+      console.log('⚠️ Profil candidat non créé, mais inscription réussie');
+    }
+  }"use server";
 
 import { encodedRedirect, getLocaleFromFormData } from "../utils/utils";
 import { redirect } from "next/navigation";
 import { createClient } from "../../supabase/server";
-import { handleCandidateProfileCreation } from "../lib/profile-creation";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -105,40 +181,55 @@ export const signUpAction = async (formData: FormData) => {
     return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
   }
 
-  // Créer le profil candidat si nécessaire
-  const profileResult = await handleCandidateProfileCreation(
-    supabase,
-    user.id,
-    fullName,
-    email,
-    userRole
-  );
+  // Créer le profil candidat si nécessaire - utilise la fonction de service RLS
+  if (user && (userRole === 'candidate' || userRole === 'worker' || userRole === 'staff')) {
+    try {
+      console.log('🔄 Création du profil candidat pour:', user.id);
+      
+      // Utiliser la fonction de service pour contourner les problèmes RLS
+      const { data: profileId, error: serviceError } = await supabase
+        .rpc('create_candidate_profile_service', {
+          p_user_id: user.id,
+          p_full_name: fullName || email,
+          p_email: email
+        });
 
-  if (!profileResult.profileCreated) {
-    console.error('🚨 Profil candidat non créé');
-    
-    let errorMessage: string;
-    
-    if (profileResult.requiresDbSetup) {
-      errorMessage = locale === 'fr' ? 
-        'Erreur lors de la création de votre profil candidat. La base de données n\'est pas encore configurée. Veuillez exécuter le script SQL fix-rls-final.sql dans Supabase ou contacter l\'administrateur.' :
-        locale === 'ar' ?
-        'خطأ في إنشاء ملف المرشح الخاص بك. قاعدة البيانات غير مهيأة بعد. يرجى تشغيل سكريبت SQL fix-rls-final.sql في Supabase أو الاتصال بالمدير.' :
-        'Error creating your candidate profile. Database is not yet configured. Please run the SQL script fix-rls-final.sql in Supabase or contact the administrator.';
-    } else {
-      errorMessage = locale === 'fr' ? 
-        'Erreur lors de la création de votre profil. Veuillez réessayer ou contacter le support.' :
-        locale === 'ar' ?
-        'خطأ في إنشاء ملفك الشخصي. يرجى المحاولة مرة أخرى أو الاتصال بالدعم.' :
-        'Error creating your profile. Please try again or contact support.';
+      if (serviceError) {
+        console.error('❌ Erreur fonction de service:', serviceError);
+        
+        // Si la fonction échoue (peut-être n'existe pas encore), essayer l'ancienne méthode
+        console.log('⚠️ Fallback: création directe du profil');
+        const { data: profile, error: directError } = await supabase
+          .from('candidate_profiles')
+          .insert({
+            user_id: user.id,
+            full_name: fullName || email,
+            email: email,
+            is_available: true,
+            skills: [],
+            rating: 0
+          })
+          .select()
+          .single();
+
+        if (directError) {
+          if (directError.code === '23505') {
+            console.log('✅ Profil candidat existe déjà (contrainte unique)');
+          } else {
+            throw directError;
+          }
+        } else {
+          console.log('✅ Profil candidat créé (méthode directe):', profile.id);
+        }
+      } else {
+        console.log('✅ Profil candidat créé via fonction de service:', profileId);
+      }
+    } catch (err) {
+      console.error('❌ Erreur création profil:', err);
+      // Ne pas bloquer l'inscription si la création du profil échoue
+      // L'utilisateur pourra créer son profil lors de la première connexion
+      console.log('⚠️ Profil candidat non créé, mais inscription réussie');
     }
-    
-    return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
-  }
-
-  // Si l'utilisateur est déjà confirmé et a un profil, rediriger vers le dashboard
-  if (user.email_confirmed_at) {
-    return redirect(`/${locale}/dashboard/candidate`);
   }
 
   // Rediriger vers la page de confirmation d'email avec l'adresse email

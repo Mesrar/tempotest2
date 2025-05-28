@@ -22,8 +22,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { ClientOnlyDateFormat } from "@/components/ui/ClientOnlyDateFormat";
 import { cn } from "@/lib/utils";
 
 interface CandidateProfileFormProps {
@@ -386,7 +385,11 @@ export function CandidateProfileForm({
                                     )}
                                   >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {exp.startDate ? format(exp.startDate, "PPP", { locale: fr }) : "Date de début"}
+                                    {exp.startDate ? (
+                                      <ClientOnlyDateFormat date={exp.startDate} formatString="PPP" />
+                                    ) : (
+                                      "Date de début"
+                                    )}
                                   </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -411,7 +414,11 @@ export function CandidateProfileForm({
                                       )}
                                     >
                                       <CalendarIcon className="mr-2 h-4 w-4" />
-                                      {exp.endDate ? format(exp.endDate, "PPP", { locale: fr }) : "Date de fin"}
+                                      {exp.endDate ? (
+                                        <ClientOnlyDateFormat date={exp.endDate} formatString="PPP" />
+                                      ) : (
+                                        "Date de fin"
+                                      )}
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-auto p-0" align="start">
@@ -497,7 +504,7 @@ export function CandidateProfileForm({
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {availabilityRange.from ? (
-                            format(availabilityRange.from, "PPP", { locale: fr })
+                            <ClientOnlyDateFormat date={availabilityRange.from} formatString="PPP" />
                           ) : (
                             "Sélectionnez une date de début"
                           )}
@@ -525,7 +532,7 @@ export function CandidateProfileForm({
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {availabilityRange.to ? (
-                            format(availabilityRange.to, "PPP", { locale: fr })
+                            <ClientOnlyDateFormat date={availabilityRange.to} formatString="PPP" />
                           ) : (
                             "Sélectionnez une date de fin"
                           )}

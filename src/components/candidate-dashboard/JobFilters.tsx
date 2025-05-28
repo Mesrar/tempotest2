@@ -20,8 +20,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, FilterIcon, MapPinIcon, Euro, Clock } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { ClientOnlyDateFormat } from "@/components/ui/ClientOnlyDateFormat";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -296,7 +295,7 @@ export function JobFilters({
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {filters.startDate ? (
-                          format(filters.startDate, "PPP", { locale: fr })
+                          <ClientOnlyDateFormat date={filters.startDate} formatString="PPP" />
                         ) : (
                           <span>Sélectionner une date</span>
                         )}
@@ -328,7 +327,7 @@ export function JobFilters({
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {filters.endDate ? (
-                          format(filters.endDate, "PPP", { locale: fr })
+                          <ClientOnlyDateFormat date={filters.endDate} formatString="PPP" />
                         ) : (
                           <span>Sélectionner une date</span>
                         )}

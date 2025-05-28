@@ -9,7 +9,7 @@ const nextConfig = {
       // Cette option permet de désactiver la vérification stricte des en-têtes pour les Server Actions
       allowedOrigins: [
         // Domaine GitHub Codespaces
-        "upgraded-dollop-559pqr9jjw37pv9-3000.app.github.dev/", 
+        "upgraded-dollop-559pqr9jjw37pv9-3000.app.github.dev", 
         // Domaine local
         "localhost:3000",
       ],

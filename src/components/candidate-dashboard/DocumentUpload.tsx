@@ -112,7 +112,11 @@ export function DocumentUpload({
     }
   };
 
-  const getFileIcon = (fileType: string) => {
+  const getFileIcon = (fileType: string | undefined) => {
+    if (!fileType) {
+      return <FileIcon className="h-6 w-6 text-gray-500" />;
+    }
+    
     if (fileType.includes('pdf')) {
       return <FileText className="h-6 w-6 text-red-500" />;
     } else if (fileType.includes('image')) {

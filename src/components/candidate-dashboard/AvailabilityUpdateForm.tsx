@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarIcon, CheckIcon, Loader2 } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { ClientOnlyDateFormat } from "@/components/ui/ClientOnlyDateFormat";
 import { cn } from "@/lib/utils";
 import {
   Popover,
@@ -120,7 +119,7 @@ export function AvailabilityUpdateForm({
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {startDate ? (
-                    format(startDate, "PPP", { locale: fr })
+                    <ClientOnlyDateFormat date={startDate} formatString="PPP" />
                   ) : (
                     <span>Sélectionner une date</span>
                   )}
@@ -153,7 +152,7 @@ export function AvailabilityUpdateForm({
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {endDate ? (
-                    format(endDate, "PPP", { locale: fr })
+                    <ClientOnlyDateFormat date={endDate} formatString="PPP" />
                   ) : (
                     <span>Sélectionner une date</span>
                   )}

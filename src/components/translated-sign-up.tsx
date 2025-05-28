@@ -8,7 +8,8 @@ import Link from "next/link";
 import { useT } from "@/lib/translations";
 import { Locale } from "@/lib/i18n";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface TranslatedSignUpProps {
   locale: Locale;
@@ -18,6 +19,8 @@ interface TranslatedSignUpProps {
 export default function TranslatedSignUp({ locale, signUpAction }: TranslatedSignUpProps) {
   const { t } = useT();
   const [selectedRole, setSelectedRole] = useState("company"); // Default à 'company'
+  const [message, setMessage] = useState<Message | null>(null);
+  const searchParams = useSearchParams();
 
   // Helper pour les chemins avec locale
   const localePath = (path: string) => {
@@ -26,6 +29,18 @@ export default function TranslatedSignUp({ locale, signUpAction }: TranslatedSig
     }
     return `/${locale}/${path}`;
   };
+
+  // Gérer les messages d'erreur/succès depuis les URL params
+  useEffect(() => {
+    const error = searchParams.get("error");
+    const success = searchParams.get("success");
+    
+    if (error) {
+      setMessage({ error });
+    } else if (success) {
+      setMessage({ success });
+    }
+  }, [searchParams]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
@@ -47,6 +62,11 @@ export default function TranslatedSignUp({ locale, signUpAction }: TranslatedSig
           </div>
 
           <div className="space-y-4">
+            {/* Affichage des messages d'erreur/succès */}
+            {message && (
+              <FormMessage message={message} />
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="full_name" className="text-sm font-medium">
                 {t("auth.fullName")}

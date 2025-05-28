@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { BriefcaseIcon, FileTextIcon, UserIcon, Calendar, Star, Bell, HistoryIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { AnimationWrapper } from "./AnimationWrapper";
 
 export function MobileNavBar({ locale = "fr" }: { locale?: string }) {
   const router = useRouter();
@@ -34,9 +35,10 @@ export function MobileNavBar({ locale = "fr" }: { locale?: string }) {
   const basePath = `/${locale}/dashboard/candidate`;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
-      <Card className="rounded-b-none border-t shadow-lg">
-        <div className="flex justify-around items-center h-16">
+    <AnimationWrapper direction="up" duration={0.4}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
+        <Card className="rounded-b-none border-t shadow-lg">
+          <div className="flex justify-around items-center h-16">
           <Button
             variant="ghost"
             size="lg"
@@ -117,5 +119,6 @@ export function MobileNavBar({ locale = "fr" }: { locale?: string }) {
         </div>
       </Card>
     </div>
+    </AnimationWrapper>
   );
 }

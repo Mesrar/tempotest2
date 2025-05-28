@@ -21,8 +21,7 @@ import {
   X
 } from "lucide-react";
 import { getStatusBadge } from "./mission-utils";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { ClientOnlyDateFormat } from "@/components/ui/ClientOnlyDateFormat";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -408,8 +407,13 @@ function MissionCard({ mission, onReview }: MissionCardProps) {
             <div className="flex items-center">
               <CalendarIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
               <span>
-                Du {format(mission.startDate, "d MMM", { locale: fr })}
-                {mission.endDate && ` au ${format(mission.endDate, "d MMM", { locale: fr })}`}
+                Du <ClientOnlyDateFormat date={mission.startDate} formatString="d MMM" />
+                {mission.endDate && (
+                  <>
+                    {" au "}
+                    <ClientOnlyDateFormat date={mission.endDate} formatString="d MMM" />
+                  </>
+                )}
               </span>
             </div>
             <div className="flex items-center">
