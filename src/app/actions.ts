@@ -3,6 +3,7 @@
 import { encodedRedirect, getLocaleFromFormData } from "../utils/utils";
 import { redirect } from "next/navigation";
 import { createClient } from "../../supabase/server";
+import { handleCandidateProfileCreation } from "../lib/profile-creation";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -104,210 +105,40 @@ export const signUpAction = async (formData: FormData) => {
     return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
   }
 
-  // Créer le profil candidat si nécessaire - utilise la fonction de service RLS
-  if (user && (userRole === 'candidate' || userRole === 'worker' || userRole === 'staff')) {
-    let profileCreated = false;
-    let profileCreationError = null;
+  // Créer le profil candidat si nécessaire
+  const profileResult = await handleCandidateProfileCreation(
+    supabase,
+    user.id,
+    fullName,
+    email,
+    userRole
+  );
+
+  if (!profileResult.profileCreated) {
+    console.error('🚨 Profil candidat non créé');
     
-    try {
-      console.log('🔄 Création du profil candidat pour:', user.id);
-      
-      // Vérifier d'abord si le profil existe déjà
-      const { data: existingProfile } = await supabase
-        .from('candidate_profiles')
-        .select('id, user_id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (existingProfile) {
-        console.log('✅ Profil candidat existe déjà:', existingProfile.id);
-        profileCreated = true;
-        // Si l'utilisateur est confirmé et a déjà un profil, rediriger vers le dashboard
-        if (user.email_confirmed_at) {
-          return redirect(`/${locale}/dashboard/candidate`);
-        }
-        // Sinon, aller à la confirmation d'email
-        return redirect(`/${locale}/email-confirmation?email=${encodeURIComponent(email)}`);
-      }
-      
-      // Utiliser la fonction de service pour contourner les problèmes RLS
-      const { data: profileId, error: serviceError } = await supabase
-        .rpc('create_candidate_profile_service', {
-          p_user_id: user.id,
-          p_full_name: fullName || email,
-          p_email: email
-        });
-
-      if (serviceError) {
-        console.error('❌ Erreur fonction de service:', serviceError);
-        
-        // Si c'est une erreur FK (23503), on doit d'abord créer l'entrée users
-        if (serviceError.code === '23503') {
-          console.log('⚠️ Erreur FK détectée - création de l\'entrée users manquante');
-          
-          try {
-            // Créer d'abord l'entrée dans la table users
-            const { data: newUser, error: userError } = await supabase
-              .from('users')
-              .upsert({
-                id: user.id,
-                user_id: user.id,
-                email: email,
-                name: fullName || email,
-                full_name: fullName || email,
-                token_identifier: user.id, // Utiliser user_id comme token_identifier
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }, { 
-                onConflict: 'id',
-                ignoreDuplicates: false 
-              });
-
-            if (userError) {
-              console.error('❌ Erreur création users:', userError);
-              throw userError;
-            } else {
-              console.log('✅ Entrée users créée:', newUser);
-              
-              // Maintenant retry la fonction de service
-              const { data: retryProfileId, error: retryServiceError } = await supabase
-                .rpc('create_candidate_profile_service', {
-                  p_user_id: user.id,
-                  p_full_name: fullName || email,
-                  p_email: email
-                });
-              
-              if (!retryServiceError) {
-                console.log('✅ Profil candidat créé via fonction de service (après création users):', retryProfileId);
-                profileCreated = true;
-              } else {
-                console.error('❌ Erreur retry fonction de service:', retryServiceError);
-                throw retryServiceError;
-              }
-            }
-          } catch (userCreationError) {
-            console.error('❌ Erreur lors de la création de l\'entrée users:', userCreationError);
-            profileCreationError = userCreationError;
-          }
-        } else if (serviceError.code === '42883') {
-          // Fonction n'existe pas encore - continuer vers fallback
-          console.log('⚠️ Fonction de service n\'existe pas encore');
-          profileCreationError = serviceError;
-        } else if (serviceError.code === '23502' && serviceError.message.includes('token_identifier')) {
-          console.log('⚠️ Tentative de correction token_identifier');
-          const { error: updateError } = await supabase
-            .from('users')
-            .update({ token_identifier: user.id })
-            .eq('id', user.id);
-          
-          if (!updateError) {
-            // Retry la fonction de service
-            const { data: retryProfileId, error: retryError } = await supabase
-              .rpc('create_candidate_profile_service', {
-                p_user_id: user.id,
-                p_full_name: fullName || email,
-                p_email: email
-              });
-            
-            if (!retryError) {
-              console.log('✅ Profil candidat créé via fonction de service (après correction token):', retryProfileId);
-              profileCreated = true;
-            } else {
-              profileCreationError = retryError;
-            }
-          } else {
-            profileCreationError = updateError;
-          }
-        } else {
-          profileCreationError = serviceError;
-        }
-        
-        // Méthode fallback: création directe avec gestion FK (seulement si pas encore créé)
-        if (!profileCreated) {
-          console.log('⚠️ Fallback: création directe du profil avec gestion FK');
-          
-          try {
-            // Vérifier si l'entrée users existe, sinon la créer
-            const { data: existingUser } = await supabase
-              .from('users')
-              .select('id')
-              .eq('id', user.id)
-              .single();
-            
-            if (!existingUser) {
-              console.log('🔄 Création de l\'entrée users pour fallback');
-              const { error: userCreateError } = await supabase
-                .from('users')
-                .upsert({
-                  id: user.id,
-                  user_id: user.id,
-                  email: email,
-                  name: fullName || email,
-                  full_name: fullName || email,
-                  token_identifier: user.id,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                }, { onConflict: 'id' });
-
-              if (userCreateError) {
-                throw userCreateError;
-              }
-            }
-            
-            // Maintenant créer le profil candidat
-            const { data: profile, error: directError } = await supabase
-              .from('candidate_profiles')
-              .upsert({
-                user_id: user.id,
-                full_name: fullName || email,
-                email: email,
-                is_available: true,
-                skills: [],
-                rating: 0
-              }, { onConflict: 'user_id' })
-              .select()
-              .single();
-
-            if (directError) {
-              if (directError.code === '23505') {
-                console.log('✅ Profil candidat existe déjà (contrainte unique)');
-                profileCreated = true;
-              } else {
-                throw directError;
-              }
-            } else {
-              console.log('✅ Profil candidat créé (méthode directe avec FK):', profile?.id);
-              profileCreated = true;
-            }
-          } catch (fallbackError) {
-            console.error('❌ Erreur méthode fallback:', fallbackError);
-            profileCreationError = fallbackError;
-          }
-        }
-      } else {
-        console.log('✅ Profil candidat créé via fonction de service:', profileId);
-        profileCreated = true;
-      }
-    } catch (err) {
-      console.error('❌ Erreur création profil:', err);
-      profileCreationError = err;
-    }
-
-    // Si la création du profil a échoué, retourner une erreur au lieu de rediriger
-    if (!profileCreated && profileCreationError) {
-      // Note: On laisse l'utilisateur dans auth.users car il pourra retry plus tard
-      // ou l'admin pourra corriger la configuration de la base de données
-      
-      console.error('🚨 Profil candidat non créé - configuration DB requise');
-      
-      const errorMessage = locale === 'fr' ? 
+    let errorMessage: string;
+    
+    if (profileResult.requiresDbSetup) {
+      errorMessage = locale === 'fr' ? 
         'Erreur lors de la création de votre profil candidat. La base de données n\'est pas encore configurée. Veuillez exécuter le script SQL fix-rls-final.sql dans Supabase ou contacter l\'administrateur.' :
         locale === 'ar' ?
         'خطأ في إنشاء ملف المرشح الخاص بك. قاعدة البيانات غير مهيأة بعد. يرجى تشغيل سكريبت SQL fix-rls-final.sql في Supabase أو الاتصال بالمدير.' :
         'Error creating your candidate profile. Database is not yet configured. Please run the SQL script fix-rls-final.sql in Supabase or contact the administrator.';
-      
-      return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
+    } else {
+      errorMessage = locale === 'fr' ? 
+        'Erreur lors de la création de votre profil. Veuillez réessayer ou contacter le support.' :
+        locale === 'ar' ?
+        'خطأ في إنشاء ملفك الشخصي. يرجى المحاولة مرة أخرى أو الاتصال بالدعم.' :
+        'Error creating your profile. Please try again or contact support.';
     }
+    
+    return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
+  }
+
+  // Si l'utilisateur est déjà confirmé et a un profil, rediriger vers le dashboard
+  if (user.email_confirmed_at) {
+    return redirect(`/${locale}/dashboard/candidate`);
   }
 
   // Rediriger vers la page de confirmation d'email avec l'adresse email
