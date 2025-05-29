@@ -5,20 +5,20 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../supabase/server";
 import { handleCandidateProfileCreation } from "../lib/profile-creation";
 
+// Unified user role types
+export type UserRole = 'company' | 'staff' | 'candidate' | 'worker' | 'admin';
+
+// Unified sign up action
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const fullName = formData.get("full_name")?.toString() || '';
-  const userRole = formData.get("user_role")?.toString() || 'company';
+  const userRole = formData.get("user_role")?.toString() as UserRole || 'company';
   const locale = getLocaleFromFormData(formData);
   const supabase = await createClient();
 
   if (!email || !password) {
-    return encodedRedirect(
-      "error",
-      `/${locale}/sign-up`,
-      "Email and password are required",
-    );
+    return encodedRedirect("error", `/${locale}/sign-up`, "Email and password are required");
   }
 
   const { data: { user }, error } = await supabase.auth.signUp({
@@ -34,117 +34,38 @@ export const signUpAction = async (formData: FormData) => {
   });
 
   if (error) {
-    // Gestion des erreurs spécifiques d'inscription
-    let errorMessage = error.message;
-    
-    if (error.message.includes('User already registered') || 
-        error.message.includes('already been registered') ||
-        error.message.includes('Email address already registered') ||
-        error.message.includes('signup_disabled')) {
-      errorMessage = locale === 'fr' ? 
-        'Cet email est déjà utilisé. Essayez de vous connecter.' :
-        locale === 'ar' ?
-        'هذا البريد الإلكتروني مستخدم بالفعل. حاول تسجيل الدخول.' :
-        'This email is already registered. Try signing in.';
-    } else if (error.message.includes('Invalid email')) {
-      errorMessage = locale === 'fr' ? 
-        'Adresse email invalide.' :
-        locale === 'ar' ?
-        'عنوان بريد إلكتروني غير صالح.' :
-        'Invalid email address.';
-    } else if (error.message.includes('Password')) {
-      errorMessage = locale === 'fr' ? 
-        'Le mot de passe doit contenir au moins 6 caractères.' :
-        locale === 'ar' ?
-        'يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل.' :
-        'Password must be at least 6 characters long.';
-    }
-    
+    let errorMessage = getLocalizedError(error.message, locale);
     return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
   }
 
-  // Vérifier que l'utilisateur a bien été créé
   if (!user) {
-    return encodedRedirect(
-      "error", 
-      `/${locale}/sign-up`, 
-      locale === 'fr' ? 
-        'Erreur lors de la création du compte. Veuillez réessayer.' :
-        locale === 'ar' ?
-        'خطأ في إنشاء الحساب. يرجى المحاولة مرة أخرى.' :
-        'Error creating account. Please try again.'
+    return encodedRedirect("error", `/${locale}/sign-up`, 
+      getLocalizedMessage('account_creation_error', locale)
     );
   }
 
-  // Vérification critique: si l'utilisateur retourné existe depuis longtemps, c'est un compte existant
-  if (user && !user.email_confirmed_at) {
-    const createdAt = new Date(user.created_at);
-    const now = new Date();
-    const timeDiff = now.getTime() - createdAt.getTime();
+  // Handle profile creation based on role
+  if (userRole === 'staff' || userRole === 'candidate' || userRole === 'worker') {
+    const profileResult = await handleCandidateProfileCreation(
+      supabase, user.id, fullName, email, userRole
+    );
     
-    // Si l'utilisateur a été créé il y a plus de 2 secondes, c'est probablement un compte existant
-    if (timeDiff > 2000) { // 2 secondes
-      const errorMessage = locale === 'fr' ? 
-        'Cet email est déjà utilisé mais non confirmé. Vérifiez votre boîte email pour confirmer votre compte ou contactez le support.' :
-        locale === 'ar' ?
-        'هذا البريد الإلكتروني مستخدم بالفعل ولكن غير مؤكد. تحقق من صندوق البريد الإلكتروني لتأكيد حسابك أو اتصل بالدعم.' :
-        'This email is already registered but not confirmed. Check your email to confirm your account or contact support.';
-      
-      return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
+    if (!profileResult.profileCreated) {
+      return encodedRedirect("error", `/${locale}/sign-up`, 
+        getLocalizedMessage('profile_creation_error', locale)
+      );
     }
   }
 
-  // Si l'utilisateur existe et est déjà confirmé, c'est définitivement un compte existant
-  if (user && user.email_confirmed_at) {
-    const errorMessage = locale === 'fr' ? 
-      'Cet email est déjà utilisé et confirmé. Essayez de vous connecter.' :
-      locale === 'ar' ?
-      'هذا البريد الإلكتروني مستخدم بالفعل ومؤكد. حاول تسجيل الدخول.' :
-      'This email is already registered and confirmed. Try signing in.';
-    
-    return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
-  }
-
-  // Créer le profil candidat si nécessaire
-  const profileResult = await handleCandidateProfileCreation(
-    supabase,
-    user.id,
-    fullName,
-    email,
-    userRole
-  );
-
-  if (!profileResult.profileCreated) {
-    console.error('🚨 Profil candidat non créé');
-    
-    let errorMessage: string;
-    
-    if (profileResult.requiresDbSetup) {
-      errorMessage = locale === 'fr' ? 
-        'Erreur lors de la création de votre profil candidat. La base de données n\'est pas encore configurée. Veuillez exécuter le script SQL fix-rls-final.sql dans Supabase ou contacter l\'administrateur.' :
-        locale === 'ar' ?
-        'خطأ في إنشاء ملف المرشح الخاص بك. قاعدة البيانات غير مهيأة بعد. يرجى تشغيل سكريبت SQL fix-rls-final.sql في Supabase أو الاتصال بالمدير.' :
-        'Error creating your candidate profile. Database is not yet configured. Please run the SQL script fix-rls-final.sql in Supabase or contact the administrator.';
-    } else {
-      errorMessage = locale === 'fr' ? 
-        'Erreur lors de la création de votre profil. Veuillez réessayer ou contacter le support.' :
-        locale === 'ar' ?
-        'خطأ في إنشاء ملفك الشخصي. يرجى المحاولة مرة أخرى أو الاتصال بالدعم.' :
-        'Error creating your profile. Please try again or contact support.';
-    }
-    
-    return encodedRedirect("error", `/${locale}/sign-up`, errorMessage);
-  }
-
-  // Si l'utilisateur est déjà confirmé et a un profil, rediriger vers le dashboard
+  // Redirect based on confirmation status
   if (user.email_confirmed_at) {
-    return redirect(`/${locale}/dashboard/candidate`);
+    return redirect(getDashboardRoute(userRole, locale));
   }
 
-  // Rediriger vers la page de confirmation d'email avec l'adresse email
   return redirect(`/${locale}/email-confirmation?email=${encodeURIComponent(email)}`);
 };
 
+// Unified sign in action
 export const signInAction = async (formData: FormData) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -157,19 +78,16 @@ export const signInAction = async (formData: FormData) => {
   });
 
   if (error) {
-    return encodedRedirect("error", `/${locale}/sign-in`, error.message);
+    return encodedRedirect("error", `/${locale}/sign-in`, 
+      getLocalizedError(error.message, locale)
+    );
   }
 
-  // Redirection basée sur le rôle de l'utilisateur
-  const userRole = data.user?.user_metadata?.role;
-  
-  if (userRole === 'staff' || userRole === 'candidate' || userRole === 'worker') {
-    return redirect(`/${locale}/dashboard/candidate`);
-  }
-  
-  return redirect(`/${locale}/dashboard`);
+  const userRole = data.user?.user_metadata?.role as UserRole;
+  return redirect(getDashboardRoute(userRole, locale));
 };
 
+// Other existing actions remain the same...
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const supabase = await createClient();
@@ -244,20 +162,144 @@ export const signOutAction = async (formData: FormData) => {
   return redirect(`/${locale}/sign-in`);
 };
 
-export const checkUserSubscription = async (userId: string) => {
+// Unified dashboard data actions
+export const getDashboardData = async (userRole: UserRole, userId: string) => {
   const supabase = await createClient();
+  
+  switch (userRole) {
+    case 'company':
+      return getCompanyDashboardData(supabase, userId);
+    case 'staff':
+    case 'candidate':
+    case 'worker':
+      return getCandidateDashboardData(supabase, userId);
+    default:
+      return null;
+  }
+};
 
-  const { data: subscription, error } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .single();
+// Helper functions
+function getDashboardRoute(userRole: UserRole, locale: string): string {
+  switch (userRole) {
+    case 'staff':
+    case 'candidate':
+    case 'worker':
+      return `/${locale}/dashboard/candidate`;
+    case 'company':
+      return `/${locale}/dashboard/company`;
+    case 'admin':
+      return `/${locale}/dashboard/admin`;
+    default:
+      return `/${locale}/dashboard`;
+  }
+}
 
-  if (error) {
-    console.error('Error checking subscription:', error);
-    return null;
+function getLocalizedError(errorMessage: string, locale: string): string {
+  const errorMappings = {
+    'User already registered': {
+      fr: 'Cet email est déjà utilisé. Essayez de vous connecter.',
+      ar: 'هذا البريد الإلكتروني مستخدم بالفعل. حاول تسجيل الدخول.',
+      en: 'This email is already registered. Try signing in.'
+    },
+    'Invalid email': {
+      fr: 'Adresse email invalide.',
+      ar: 'عنوان بريد إلكتروني غير صالح.',
+      en: 'Invalid email address.'
+    }
+  };
+
+  for (const [key, translations] of Object.entries(errorMappings)) {
+    if (errorMessage.includes(key)) {
+      return translations[locale as keyof typeof translations] || translations.en;
+    }
   }
 
-  return subscription;
+  return errorMessage;
+}
+
+function getLocalizedMessage(key: string, locale: string): string {
+  const messages = {
+    account_creation_error: {
+      fr: 'Erreur lors de la création du compte. Veuillez réessayer.',
+      ar: 'خطأ في إنشاء الحساب. يرجى المحاولة مرة أخرى.',
+      en: 'Error creating account. Please try again.'
+    },
+    profile_creation_error: {
+      fr: 'Erreur lors de la création de votre profil. Veuillez réessayer.',
+      ar: 'خطأ في إنشاء ملفك الشخصي. يرجى المحاولة مرة أخرى.',
+      en: 'Error creating your profile. Please try again.'
+    }
+  };
+
+  return messages[key as keyof typeof messages]?.[locale as keyof typeof messages[keyof typeof messages]] || 
+         messages[key as keyof typeof messages]?.en || 
+         'An error occurred';
+}
+
+async function getCompanyDashboardData(supabase: any, userId: string) {
+  // Company dashboard specific data fetching
+  const [jobsResult, candidatesResult] = await Promise.all([
+    supabase.from("job_postings").select("*").eq("company_id", userId),
+    supabase.from("job_candidates").select("*", { count: "exact", head: true })
+  ]);
+
+  return {
+    jobs: jobsResult.data || [],
+    activeJobsCount: jobsResult.data?.filter((job: any) => job.status === 'active').length || 0,
+    applicantsCount: candidatesResult.count || 0
+  };
+}
+
+async function getCandidateDashboardData(supabase: any, userId: string) {
+  // Candidate dashboard specific data fetching
+  const profileResult = await supabase
+    .from('candidate_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (!profileResult.data) return null;
+
+  const [experiencesResult, documentsResult, jobMatchesResult] = await Promise.all([
+    supabase.from('candidate_experiences').select('*').eq('candidate_id', profileResult.data.id),
+    supabase.from('candidate_documents').select('*').eq('candidate_id', profileResult.data.id),
+    supabase.from('job_matches').select(`
+      *, 
+      job:job_offers (*, company:companies (*))
+    `).eq('candidate_id', profileResult.data.id)
+  ]);
+
+  return {
+    profile: profileResult.data,
+    experiences: experiencesResult.data || [],
+    documents: documentsResult.data || [],
+    jobMatches: jobMatchesResult.data || []
+  };
+}
+
+// Subscription check function
+export const checkUserSubscription = async (userId: string) => {
+  const supabase = await createClient();
+  
+  try {
+    const { data: subscription, error } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error('Error checking subscription:', error);
+      return { hasActiveSubscription: false, subscription: null };
+    }
+
+    return {
+      hasActiveSubscription: !!subscription,
+      subscription: subscription || null
+    };
+  } catch (error) {
+    console.error('Error in checkUserSubscription:', error);
+    return { hasActiveSubscription: false, subscription: null };
+  }
 };

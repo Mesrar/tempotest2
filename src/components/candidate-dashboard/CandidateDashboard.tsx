@@ -28,12 +28,7 @@ import { JobMatches } from "./JobMatches";
 import { SmartNotifications } from "./SmartNotifications";
 import { AnimationWrapper, StaggerContainer, FadeInCard, SlideIn } from "./AnimationWrapper";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
-import { 
-  updateCandidateProfile, 
-  updateAvailability,
-  acceptJobMatch,
-  rejectJobMatch
-} from "./staffDataService";
+import { dataService } from "@/lib/unified-data-service";
 
 // Mock data types - these would come from your API/database
 interface Candidate {
@@ -226,8 +221,17 @@ export default function CandidateDashboard({
     setIsSubmitting(true);
     try {
       if (profile?.id) {
-        // Utiliser la vraie implémentation avec les données Supabase
-        const { success, error } = await updateCandidateProfile(profile.id, data);
+        const { success, error } = await dataService.updateProfile(user?.id || '', {
+          full_name: data.fullName,
+          phone: data.phone,
+          location: data.location,
+          bio: data.bio,
+          skills: data.skills,
+          hourly_rate: data.hourlyRate ? parseFloat(data.hourlyRate) : null,
+          is_available: data.isAvailable,
+          availability_start: data.availabilityStart?.toISOString(),
+          availability_end: data.availabilityEnd?.toISOString()
+        });
         
         if (!success) throw error;
         
@@ -236,7 +240,6 @@ export default function CandidateDashboard({
           description: "Votre profil a été mis à jour avec succès.",
         });
       } else {
-        // Fallback si pas de profil
         await new Promise(resolve => setTimeout(resolve, 1000));
         console.log("Profile data submitted:", data);
       }
@@ -257,10 +260,11 @@ export default function CandidateDashboard({
   const handleDocumentUpload = async (files: File[]) => {
     setIsUploading(true);
     try {
-      // Mock API call - would be a real API call to Supabase Storage
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Files to upload:", files);
-      // Redirect to documents page after upload
+      if (profile?.id) {
+        for (const file of files) {
+          await dataService.uploadDocument(profile.id, file, file.name);
+        }
+      }
       router.push("/fr/dashboard/candidate/documents");
     } catch (error) {
       console.error("Error uploading documents:", error);
@@ -270,18 +274,17 @@ export default function CandidateDashboard({
   };
 
   const handleDeleteDocument = async (id: string) => {
-    // Mock API call - would be a real API call to Supabase Storage
-    await new Promise(resolve => setTimeout(resolve, 800));
-    console.log("Document deleted:", id);
-    // Update local state or refetch documents
+    const document = mockDocuments.find(doc => doc.id === id);
+    if (document && profile?.id) {
+      await dataService.deleteDocument(id, document.url);
+    }
   };
 
   const handleAcceptJob = async (jobId: string) => {
     try {
-      const { success, error } = await acceptJobMatch(jobId);
+      const { success, error } = await dataService.acceptJobMatch(jobId);
       if (!success) throw error;
       
-      // Les données seront automatiquement rafraîchies par le hook useCurrentStaff
       toast({
         title: "Offre acceptée",
         description: "Vous avez accepté cette offre d'emploi.",
@@ -298,10 +301,9 @@ export default function CandidateDashboard({
 
   const handleRejectJob = async (jobId: string) => {
     try {
-      const { success, error } = await rejectJobMatch(jobId);
+      const { success, error } = await dataService.rejectJobMatch(jobId);
       if (!success) throw error;
       
-      // Les données seront automatiquement rafraîchies par le hook useCurrentStaff
       toast({
         title: "Offre refusée",
         description: "Vous avez refusé cette offre d'emploi.",
@@ -320,7 +322,7 @@ export default function CandidateDashboard({
   const handleUpdateAvailability = async (data: { isAvailable: boolean; startDate?: Date | null; endDate?: Date | null }) => {
     try {
       if (profile?.id) {
-        const { success, error } = await updateAvailability(
+        const { success, error } = await dataService.updateAvailability(
           profile.id, 
           data.isAvailable, 
           data.startDate, 

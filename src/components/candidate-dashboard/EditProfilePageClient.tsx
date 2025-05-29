@@ -5,11 +5,7 @@ import { Locale } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/use-toast";
 import { useCurrentStaff } from "@/hooks/useCurrentStaff";
-import { 
-  updateProfile,
-  addExperience, 
-  updateExperience 
-} from "@/components/candidate-dashboard/staffDataService";
+import { dataService } from "@/lib/unified-data-service";
 import { uploadDocument, deleteDocument } from "@/lib/supabase/documents";
 import { Loader2, ArrowLeft, Save, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -102,7 +98,7 @@ export function EditProfilePageClient({ locale, dict }: EditProfilePageClientPro
       console.log("📝 Form data received:", data);
       
       // Update profile with Supabase
-      const profileResult = await updateProfile(user.id, {
+      const profileResult = await dataService.updateProfile(user.id, {
         full_name: data.fullName,
         phone: data.phone,
         location: data.location,
@@ -131,7 +127,7 @@ export function EditProfilePageClient({ locale, dict }: EditProfilePageClientPro
           if (exp.id) {
             // Update existing experience
             console.log("🔄 Updating existing experience:", exp.id);
-            const expResult = await updateExperience(exp.id, {
+            const expResult = await dataService.updateExperience(exp.id, {
               title: exp.title,
               company: exp.company,
               start_date: startDate,
@@ -146,7 +142,7 @@ export function EditProfilePageClient({ locale, dict }: EditProfilePageClientPro
           } else {
             // Create new experience
             console.log("🔄 Creating new experience");
-            const expResult = await addExperience(user.id, {
+            const expResult = await dataService.addExperience(user.id, {
               title: exp.title,
               company: exp.company,
               start_date: startDate,

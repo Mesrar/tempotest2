@@ -1,0 +1,52 @@
+Epic,Issue ID,User Story,Priority
+Candidate Profile Management,CAN-P1,As a candidate I can enter my personal information (name, contact, location) and verify my ID (e.g. upload CIN),High
+Candidate Profile Management,CAN-P2,As a candidate I can add my logistics-specific skills and certifications,High
+Candidate Profile Management,CAN-P3,As a candidate I can log my past work experience (roles, employers, tasks),Medium
+Candidate Profile Management,CAN-P4,As a candidate I can toggle my profile visibility (public/private),Medium
+Candidate Profile Management,CAN-P5,As a candidate I can choose the UI language (Arabic/French) with tooltips for low-literacy users,Medium
+Job Search & Matching,CAN-S1,As a candidate I can filter jobs by role, location, salary, and contract type,High
+Job Search & Matching,CAN-S2,As a candidate I receive AI-driven job recommendations based on my profile,High
+Job Search & Matching,CAN-S3,As a candidate I can track the status of my applications (submitted, viewed, interview),Medium
+Job Search & Matching,CAN-S4,As a candidate I can save/bookmark jobs for later,Low
+Tool Rental for Candidates,CAN-T1,As a candidate I can browse the tool marketplace by type and location,Medium
+Tool Rental for Candidates,CAN-T2,As a candidate I can reserve a tool with delivery/pickup options,Medium
+Tool Rental for Candidates,CAN-T3,As a candidate I can view my rental history and costs,Low
+Tool Rental for Candidates,CAN-T4,As a candidate I can report issues or request maintenance on rented tools,Low
+Training & Upskilling,CAN-F1,As a candidate I can access micro-courses on logistics topics,Medium
+Training & Upskilling,CAN-F2,As a candidate I earn and display badges/certificates for completed courses,Low
+Training & Upskilling,CAN-F3,As a candidate I track my learning progress with visual progress bars,Low
+Notifications & Communication,CAN-N1,As a candidate I receive SMS or push alerts for new job matches and updates,High
+Notifications & Communication,CAN-N2,As a candidate I can message employers in-app,Medium
+Notifications & Communication,CAN-N3,As a candidate I receive alerts on rental delivery, return deadlines, and maintenance,Low
+Financial Tools for Candidates,CAN-F4,As a candidate I can view my earnings and rental expenses,Low
+Financial Tools for Candidates,CAN-F5,As a candidate I can pay via mobile money or bank card,Low
+Mobile & Offline Support,CAN-M1,As a candidate I can use the dashboard fully on my smartphone,Medium
+Mobile & Offline Support,CAN-M2,As a candidate I can browse my profile and jobs offline,Low
+Company Profile & Multi-User Access,COM-P1,As a company I can enter and verify my business information and documents,High
+Company Profile & Multi-User Access,COM-P2,As a company I can customize my branding with logo and description,Medium
+Company Profile & Multi-User Access,COM-P3,As a company I can invite team members with role-based permissions,Medium
+Job Posting & Management,COM-J1,As a company I can post jobs with details (role, skills, location, salary, contract),High
+Job Posting & Management,COM-J2,As a company I can filter and search candidates by skills and certifications,Medium
+Job Posting & Management,COM-J3,As a company I receive AI-driven candidate recommendations,Medium
+Job Posting & Management,COM-J4,As a company I can manage applications (shortlist, schedule interviews, feedback),High
+Job Posting & Management,COM-J5,As a company I can view job analytics (views, applications, time-to-hire),Low
+Tool Rental for Companies,COM-T1,As a company I can browse and rent tools for projects,Medium
+Tool Rental for Companies,COM-T2,As a company I can bulk-reserve tools for large operations,Medium
+Tool Rental for Companies,COM-T3,As a company I can track rental costs and receive VAT-compliant invoices,Medium
+Tool Rental for Companies,COM-T4,As a company I can report and follow up maintenance requests,Low
+Worker Management,COM-W1,As a company I can view a dashboard of hired workers and their status,Medium
+Worker Management,COM-W2,As a company I receive training recommendations for my teams,Low
+Worker Management,COM-W3,As a company I track compliance (licenses, certifications) with alerts,Medium
+Analytics & Reporting,COM-A1,As a company I can view hiring trends and candidate demographics,Low
+Analytics & Reporting,COM-A2,As a company I can analyze tool usage and costs,Low
+Analytics & Reporting,COM-A3,As a company I can generate custom reports in Arabic/French,Low
+Communication Tools,COM-C1,As a company I can message candidates in-app,Medium
+Communication Tools,COM-C2,As a company I can coordinate with tool suppliers,Low
+Integrations & Compliance,COM-I1,As a company I can pay via local gateways (CMI, Mobile Money),Medium
+Integrations & Compliance,COM-I2,As a company I can generate VAT-compliant invoices,Medium
+Integrations & Compliance,COM-I3,As a company I can connect my ERP via API,Low
+Integrations & Compliance,COM-I4,As a company I can secure data with 2FA and encryption,Medium
+Shared Features,SH-1,As any user I see a bilingual UI (Arabic/French) everywhere,High
+Shared Features,SH-2,As any user I access in-app help, FAQs and live chat,Medium
+Shared Features,SH-3,As any user I use a freemium model with upgrade paths,Low
+Shared Features,SH-4,As any user I benefit from two-factor authentication and encryption,Medium
