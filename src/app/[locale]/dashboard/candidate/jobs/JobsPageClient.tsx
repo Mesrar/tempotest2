@@ -289,7 +289,7 @@ export function JobsPageClient({ dict, locale }: JobsPageClientProps) {
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Trier par" />
               </SelectTrigger>
-              <SelectContent position="popper">
+              <SelectContent>
                 <SelectItem value="match">Meilleure correspondance</SelectItem>
                 <SelectItem value="date">Date de début</SelectItem>
                 <SelectItem value="salary">Salaire</SelectItem>
@@ -302,7 +302,8 @@ export function JobsPageClient({ dict, locale }: JobsPageClientProps) {
                   <SlidersIcon className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent>
+              {/* @ts-ignore */}
+              <SheetContent side="right" className="w-[400px] sm:w-[540px]">
                 <SheetHeader>
                   <SheetTitle>Filtrer les offres</SheetTitle>
                 </SheetHeader>
@@ -342,29 +343,6 @@ export function JobsPageClient({ dict, locale }: JobsPageClientProps) {
                         />
                         <Label htmlFor="completed">Terminées</Label>
                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Emplacement</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Tous les emplacements" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les emplacements</SelectItem>
-                        <SelectItem value="casa">Casablanca</SelectItem>
-                        <SelectItem value="rabat">Rabat</SelectItem>
-                        <SelectItem value="tanger">Tanger</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Taux horaire minimum (MAD)</Label>
-                    <div className="flex items-center space-x-2">
-                      <Input type="number" placeholder="ex. 50" />
-                      <span>MAD/h</span>
                     </div>
                   </div>
                 </div>
